@@ -22,6 +22,7 @@ use warnings;
 use LWP::Simple;
 use Text::CSV;
 use Data::Dumper;
+use Getopt::Long;
 
 # TODO:
 #   1. Paramatize!
@@ -29,7 +30,37 @@ use Data::Dumper;
 #   3. Add exit status code
 #   4. Add help
 
-my @git_cherry = qx|git cherry -v 3.6.x master|;
+my $branch  = undef;
+my $HEAD    = 'master';
+my $help    = 0;
+my $verbose = 0;
+
+GetOptions(
+    'b|branch:s'    => \$branch,
+    'h|head:s'      => \$HEAD,
+    'h|help|?'      => \$help,
+    'v|verbose'     => \$verbose,
+);
+
+my $usage = << 'ENDUSAGE';
+
+This script retrieves the output of 'git cherry' and parses through it
+creating a list of enhancements and bugfixes found in master (or at the
+user's option an alternative 'HEAD') but not in the 'branch' passed in.
+The script will then auto-cherry-pick the missing bugfixes and produce
+a list for manual review of the missing enhancements.
+
+This script has the following parameters :
+    -b --branch: branch to compare against 'HEAD' ('HEAD' is 'master' by default)
+    -h --head: 'HEAD' other than 'master' against which to compare 'branch'
+    -h --help: this message
+    -v --verbose: provides verbose output to STDOUT
+
+ENDUSAGE
+
+die $usage if $help;
+
+my @git_cherry = qx|git cherry -v $branch $HEAD|;
 my $commit_list = {};
 my $no_bug_number = {};
 
@@ -76,9 +107,9 @@ while (scalar @csv_file) {
 
 
 use Data::Dumper;
-print "ENHANCEMENTS:\n";
+print "ENHANCEMENTS not in $branch:\n";
 print Dumper($enhancements);
-print "\nBUGFIXES:\n";
+print "\nBUGFIXES not in $branch:\n";
 print Dumper($bug_fixes);
-print "\nNO BUG NUMBER:\n";
+print "\nNO BUG NUMBER not in $branch:\n";
 print Dumper($no_bug_number);
