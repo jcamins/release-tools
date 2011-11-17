@@ -67,7 +67,7 @@ my $no_bug_number = {};
 foreach (@git_cherry) {
     $_ =~ m/^\+\s([0-9a-z]+)/;
     my $commit_id = $1;
-    if ($_ =~ m/^\+.*([B|b]ug|BZ)?\s?(?<![a-z]|\.)(\d{4})[\s|:|,]/g) {
+    if ($_ =~ m/^\+.*([B|b]ug|BZ)?\s?(?<=\s)(\d+)(?=[\s|:|,])/g) {
         push (@{$commit_list->{"$2"}}, $commit_id); # catalog commits with a bug number based on bug number
     }
     elsif ($_ !~ m/^\-/) {
@@ -79,9 +79,11 @@ my @bug_list = keys(%$commit_list);
 
 @bug_list = sort {$a <=> $b} @bug_list;
 
-my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_id&columnlist=bug_severity&content=";
+my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_id&columnlist=bug_severity&bug_id=";
 $url .= join '%2C', @bug_list;
 $url .= "&ctype=csv";
+
+$verbose && print "URL: $url\n";
 
 my @csv_file = split /\n/, get($url);
 
@@ -97,6 +99,7 @@ my $bug_fixes = {};
 while (scalar @csv_file) {
     $csv->parse(shift @csv_file);
     my @fields = $csv->fields;
+    #print "Bug Number: $fields[0], Bug Type: $fields[1]\n";
     if ($fields[1] =~ m/(enhancement)/) {
         push (@{$enhancements->{"$fields[0]"}}, @{$commit_list->{"$fields[0]"}});
     }
