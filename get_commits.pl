@@ -159,7 +159,7 @@ foreach my $bug_number (keys(%$bug_fixes)) {
     }
 }
 
-while (prompt "Shall we review commits without bug numbers now? (Y/n)") {
+while (scalar(keys(%$no_bug_number)) && prompt "Shall we review commits without bug numbers now? (Y/n)") {
     last if $_ =~ m/^[N|n]/;
     foreach my $commit_number (keys(%$no_bug_number)) {
         while( prompt "Shall I apply commit number $commit_number? (Y/n)") {
@@ -181,7 +181,7 @@ while (prompt "Shall we review commits without bug numbers now? (Y/n)") {
     last;
 }
 
-while (prompt "Shall we review enhancements now? (Y/n)") {
+while (scalar(keys(%$enhancements)) && prompt "Shall we review enhancements now? (Y/n)") {
     last if $_ =~ m/^[N|n]/;
     foreach my $bug_number (keys(%$enhancements)) {
         while( prompt "Shall I apply enhancement $bug_number? (Y/n)") {
@@ -202,7 +202,6 @@ while (prompt "Shall we review enhancements now? (Y/n)") {
     }
     last;
 }
-
 
 
 
