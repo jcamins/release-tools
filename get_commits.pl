@@ -65,18 +65,18 @@ my @unapplied_bugfixes = ();
 my @unapplied_anonfixes = ();
 my @unapplied_enhancements = ();
 
-if (-e "unapplied_bugfixes.txt") {
-    open(BF, "<unapplied_bugfixes.txt");
+if (-e "unapplied_bugfixes.$branch.txt") {
+    open(BF, "<unapplied_bugfixes.$branch.txt");
     @unapplied_bugfixes = <BF>;
     close BF;
 }
-if (-e "unapplied_anonfixes.txt") {
-    open(AF, "<unapplied_anonfixes.txt");
+if (-e "unapplied_anonfixes.$branch.txt") {
+    open(AF, "<unapplied_anonfixes.$branch.txt");
     @unapplied_anonfixes = <AF>;
     close AF;
 }
-if (-e "unapplied_enhancements.txt") {
-    open(EN, "<unapplied_enhancements.txt");
+if (-e "unapplied_enhancements.$branch.txt") {
+    open(EN, "<unapplied_enhancements.$branch.txt");
     @unapplied_enhancements = <EN>;
     close EN;
 }
@@ -84,6 +84,8 @@ if (-e "unapplied_enhancements.txt") {
 my @git_cherry = qx|git cherry -v $branch $HEAD|;
 my $commit_list = {};
 my $no_bug_number = {};
+my $enhancements = {};
+my $bug_fixes = {};
 
 foreach (@git_cherry) {
     $_ =~ m/^\+\s([0-9a-z]+)/;
@@ -106,55 +108,57 @@ foreach (@git_cherry) {
     }
 }
 
-die "No new commits to pick!" if scalar(keys(%$commit_list)) == 0 && scalar(keys(%$no_bug_number)) == 0;
-
-my @bug_list = keys(%$commit_list);
-
-@bug_list = sort {$a <=> $b} @bug_list;
-
-my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_id&columnlist=bug_severity%2Cshort_desc&bug_id=";
-$url .= join '%2C', @bug_list;
-$url .= "&ctype=csv";
-
-$verbose && print "URL: $url\n";
-
-my @csv_file = split /\n/, get($url);
-
-my $csv = Text::CSV->new();
-
-# Extract the column names
-$csv->parse(shift @csv_file);
-my @columns = $csv->fields;
-
-my $enhancements = {};
-my $bug_fixes = {};
-
-while (scalar @csv_file) {
-    $csv->parse(shift @csv_file);
-    my @fields = $csv->fields;
-    #print "Bug Number: $fields[0], Bug Type: $fields[1]\n";
-    if ($fields[1] =~ m/(enhancement)/) {
-        push (@{$enhancements->{"$fields[0]"}}, @{$commit_list->{"$fields[0]"}});
-    }
-    else {
-        push (@{$bug_fixes->{"$fields[0]"}}, @{$commit_list->{"$fields[0]"}});
-    }
+if (scalar(keys(%$commit_list)) == 0 && scalar(keys(%$no_bug_number)) == 0) {
+    print "\nCongratulations!! There are no new commits to pick!\n\n";
+    exit 1;
 }
 
-foreach my $bug_number (keys(%$bug_fixes)) {
-    while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n)") {
-        if ($_ =~ m/^[Y|y]/) {
-                foreach my $commit_id (@{$bug_fixes->{$bug_number}}) {
-                    my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
-                    print $cherry_pick;
-                }
-            last;
-            }
+if (scalar(keys(%$commit_list))) {
+    my @bug_list = keys(%$commit_list);
+
+    @bug_list = sort {$a <=> $b} @bug_list;
+
+    my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_id&columnlist=bug_severity%2Cshort_desc&bug_id=";
+    $url .= join '%2C', @bug_list;
+    $url .= "&ctype=csv";
+
+    $verbose && print "URL: $url\n";
+
+    my @csv_file = split /\n/, get($url);
+
+    my $csv = Text::CSV->new();
+
+# Extract the column names
+    $csv->parse(shift @csv_file);
+    my @columns = $csv->fields;
+
+    while (scalar @csv_file) {
+        $csv->parse(shift @csv_file);
+        my @fields = $csv->fields;
+        #print "Bug Number: $fields[0], Bug Type: $fields[1]\n";
+        if ($fields[1] =~ m/(enhancement)/) {
+            push (@{$enhancements->{"$fields[0]"}}, @{$commit_list->{"$fields[0]"}});
+        }
         else {
-            open(BF, ">>unapplied_bugfixes.txt");
-            print BF "$bug_number\n";
-            close BF;
-            last;
+            push (@{$bug_fixes->{"$fields[0]"}}, @{$commit_list->{"$fields[0]"}});
+        }
+    }
+
+    foreach my $bug_number (keys(%$bug_fixes)) {
+        while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n)") {
+            if ($_ =~ m/^[Y|y]/) {
+                    foreach my $commit_id (@{$bug_fixes->{$bug_number}}) {
+                        my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
+                        print $cherry_pick;
+                    }
+                last;
+                }
+            else {
+                open(BF, ">>unapplied_bugfixes.$branch.txt");
+                print BF "$bug_number\n";
+                close BF;
+                last;
+            }
         }
     }
 }
@@ -171,7 +175,7 @@ while (scalar(keys(%$no_bug_number)) && prompt "Shall we review commits without 
                 last;
                 }
             else {
-                open(AF, ">>unapplied_anonfixes.txt");
+                open(AF, ">>unapplied_anonfixes.$branch.txt");
                 print AF "$commit_number\n";
                 close AF;
                 last;
@@ -193,7 +197,7 @@ while (scalar(keys(%$enhancements)) && prompt "Shall we review enhancements now?
                 last;
                 }
             else {
-                open(EN, ">>unapplied_enhancements.txt");
+                open(EN, ">>unapplied_enhancements.$branch.txt");
                 print EN "$bug_number\n";
                 close EN;
                 last;
