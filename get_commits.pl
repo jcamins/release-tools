@@ -23,6 +23,7 @@ use LWP::Simple;
 use Text::CSV;
 use Data::Dumper;
 use Getopt::Long;
+use IO::Prompt;
 
 # TODO:
 #   1. Paramatize!
@@ -60,6 +61,26 @@ ENDUSAGE
 
 die $usage if $help;
 
+my @unapplied_bugfixes = ();
+my @unapplied_anonfixes = ();
+my @unapplied_enhancements = ();
+
+if (-e "unapplied_bugfixes.txt") {
+    open(BF, "<unapplied_bugfixes.txt");
+    @unapplied_bugfixes = <BF>;
+    close BF;
+}
+if (-e "unapplied_anonfixes.txt") {
+    open(AF, "<unapplied_anonfixes.txt");
+    @unapplied_anonfixes = <AF>;
+    close AF;
+}
+if (-e "unapplied_enhancements.txt") {
+    open(EN, "<unapplied_enhancements.txt");
+    @unapplied_enhancements = <EN>;
+    close EN;
+}
+
 my @git_cherry = qx|git cherry -v $branch $HEAD|;
 my $commit_list = {};
 my $no_bug_number = {};
@@ -68,18 +89,30 @@ foreach (@git_cherry) {
     $_ =~ m/^\+\s([0-9a-z]+)/;
     my $commit_id = $1;
     if ($_ =~ m/^\+.*([B|b]ug|BZ)?\s?(?<=\s)(\d+)(?=[\s|:|,])/g) {
-        push (@{$commit_list->{"$2"}}, $commit_id); # catalog commits with a bug number based on bug number
+        my $bug_number = $2;
+        next if grep (/$bug_number/, @unapplied_bugfixes);
+        next if grep (/$bug_number/, @unapplied_enhancements);
+        push (@{$commit_list->{"$bug_number"}}, $commit_id); # catalog commits with a bug number based on bug number
     }
     elsif ($_ !~ m/^\-/) {
-        push (@{$no_bug_number->{"$commit_id"}}, $_); # catalog commits without a bug number based on commit id
+        next if grep (/$commit_id/, @unapplied_anonfixes);
+        push (@{$no_bug_number->{"$commit_id"}}, $commit_id); # catalog commits without a bug number based on commit id
+    }
+    elsif ($_ =~ m/^\-/) {
+        # do some stuff
+    }
+    else {
+        # do some other stuff
     }
 }
+
+die "No new commits to pick!" if scalar(keys(%$commit_list)) == 0 && scalar(keys(%$no_bug_number)) == 0;
 
 my @bug_list = keys(%$commit_list);
 
 @bug_list = sort {$a <=> $b} @bug_list;
 
-my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_id&columnlist=bug_severity&bug_id=";
+my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_id&columnlist=bug_severity%2Cshort_desc&bug_id=";
 $url .= join '%2C', @bug_list;
 $url .= "&ctype=csv";
 
@@ -108,11 +141,70 @@ while (scalar @csv_file) {
     }
 }
 
+foreach my $bug_number (keys(%$bug_fixes)) {
+    while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n)") {
+        if ($_ =~ m/^[Y|y]/) {
+                foreach my $commit_id (@{$bug_fixes->{$bug_number}}) {
+                    my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
+                    print $cherry_pick;
+                }
+            last;
+            }
+        else {
+            open(BF, ">>unapplied_bugfixes.txt");
+            print BF "$bug_number\n";
+            close BF;
+            last;
+        }
+    }
+}
 
-use Data::Dumper;
-print "ENHANCEMENTS not in $branch:\n";
-print Dumper($enhancements);
-print "\nBUGFIXES not in $branch:\n";
-print Dumper($bug_fixes);
-print "\nNO BUG NUMBER not in $branch:\n";
-print Dumper($no_bug_number);
+while (prompt "Shall we review commits without bug numbers now? (Y/n)") {
+    last if $_ =~ m/^[N|n]/;
+    foreach my $commit_number (keys(%$no_bug_number)) {
+        while( prompt "Shall I apply commit number $commit_number? (Y/n)") {
+            if ($_ =~ m/^[Y|y]/) {
+                    foreach my $commit_id (@{$no_bug_number->{$commit_number}}) {
+                        my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
+                        print $cherry_pick;
+                    }
+                last;
+                }
+            else {
+                open(AF, ">>unapplied_anonfixes.txt");
+                print AF "$commit_number\n";
+                close AF;
+                last;
+            }
+        }
+    }
+    last;
+}
+
+while (prompt "Shall we review enhancements now? (Y/n)") {
+    last if $_ =~ m/^[N|n]/;
+    foreach my $bug_number (keys(%$enhancements)) {
+        while( prompt "Shall I apply enhancement $bug_number? (Y/n)") {
+            if ($_ =~ m/^[Y|y]/) {
+                    foreach my $commit_id (@{$enhancements->{$bug_number}}) {
+                        my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
+                        print $cherry_pick;
+                    }
+                last;
+                }
+            else {
+                open(EN, ">>unapplied_enhancements.txt");
+                print EN "$bug_number\n";
+                close EN;
+                last;
+            }
+        }
+    }
+    last;
+}
+
+
+
+
+
+
