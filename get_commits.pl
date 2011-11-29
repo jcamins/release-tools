@@ -33,12 +33,14 @@ use IO::Prompt;
 
 my $branch  = undef;
 my $HEAD    = 'master';
+my $limit   = 0;
 my $help    = 0;
 my $verbose = 0;
 
 GetOptions(
     'b|branch:s'    => \$branch,
     'h|head:s'      => \$HEAD,
+    'l|limit:s'     => \$limit,
     'h|help|?'      => \$help,
     'v|verbose'     => \$verbose,
 );
@@ -81,7 +83,8 @@ if (-e "unapplied_enhancements.$branch.txt") {
     close EN;
 }
 
-my @git_cherry = qx|git cherry -v $branch $HEAD|;
+my $shell_command = "git cherry -v $branch $HEAD " . ($limit ? $limit : '');
+my @git_cherry = qx|$shell_command|;
 my $commit_list = {};
 my $no_bug_number = {};
 my $enhancements = {};
@@ -148,8 +151,15 @@ if (scalar(keys(%$commit_list))) {
         while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n)") {
             if ($_ =~ m/^[Y|y]/) {
                     foreach my $commit_id (@{$bug_fixes->{$bug_number}}) {
-                        my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
-                        print $cherry_pick;
+                        my $command = "git cherry-pick -x -s $commit_id";
+                        my @cherry_pick = qx|$command|;
+                        warn Dumper(\@cherry_pick);
+                        print join /\n/, @cherry_pick;
+                        if ( grep /failed/, @cherry_pick ){
+                            print "\n\nReverting failed cherry-pick...\n\n";
+                            print qx|git reset --hard HEAD|;
+                        }
+
                     }
                 last;
                 }
