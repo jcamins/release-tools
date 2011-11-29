@@ -21,8 +21,9 @@
 #   2. Add code to produce exit status
 
 VERSION=$1;
+BRANCH=$2;
 
-git archive --format=tar --prefix=koha-$VERSION/ 3.4.x | gzip > releases/koha-$VERSION.tar.gz
+git archive --format=tar --prefix=koha-$VERSION/ $BRANCH | gzip > releases/koha-$VERSION.tar.gz
 cd releases
 gpg -sb koha-$VERSION.tar.gz
 md5sum koha-$VERSION.tar.gz > koha-$VERSION.tar.gz.MD5
