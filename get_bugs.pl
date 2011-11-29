@@ -85,11 +85,19 @@ foreach (@git_log) {
     }
 }
 #die "Done for now...\n"; #XXX
-@bug_list = sort {$a <=> $b} @bug_list;
+#@bug_list = sort {$a <=> $b} @bug_list;
+my %seen = ();
+@bug_list = grep{!$seen{$_}++} (sort {$a <=> $b} @bug_list);
 
-my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_severity%2Cbug_id&content=";
+print "Found " . scalar @bug_list . " bugs in this search\n\n" if $verbose;
+
+# http://bugs.koha-community.org/bugzilla3/buglist.cgi?bug_id=2629%2C2847%2C3958%2C4161%2C5150%2C5885%2C5945%2C5974%2C6390%2C6471%2C6475%2C6628%2C6629%2C6679%2C6799%2C6895%2C6955%2C6963%2C6977%2C6989%2C6994%2C7061%2C7069%2C7076%2C7084%2C7085%2C7095%2C7117%2C7128%2C7134%2C7138%2C7146%2C7184%2C7185%2C7188%2C7207%2C7221&bug_id_type=anyexact&query_format=advanced&ctype=csv
+
+my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_severity%2Cbug_id&bug_id=";
 $url .= join '%2C', @bug_list;
-$url .= "&ctype=csv";
+$url .= "&bug_id_type=anyexact&query_format=advanced&ctype=csv";
+
+print "URL: $url\n" if $verbose;
 
 my @csv_file = split /\n/, get($url);
 my $csv = Text::CSV->new();
