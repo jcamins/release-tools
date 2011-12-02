@@ -19,6 +19,7 @@
 use strict;
 use warnings;
 
+use Git;
 use LWP::Simple;
 use Text::CSV;
 use Data::Dumper;
@@ -66,6 +67,7 @@ die $usage if $help;
 my @unapplied_bugfixes = ();
 my @unapplied_anonfixes = ();
 my @unapplied_enhancements = ();
+my @unclean_commits = ();
 
 if (-e "unapplied_bugfixes.$branch.txt") {
     open(BF, "<unapplied_bugfixes.$branch.txt");
@@ -82,9 +84,21 @@ if (-e "unapplied_enhancements.$branch.txt") {
     @unapplied_enhancements = <EN>;
     close EN;
 }
+if (-e "unclean_commits.$branch.txt") {
+    open(UC, "<unclean_commits.$branch.txt");
+    @unclean_commits = <UC>;
+    close UC;
+}
 
-my $shell_command = "git cherry -v $branch $HEAD " . ($limit ? $limit : '');
-my @git_cherry = qx|$shell_command|;
+my $repo = Git->repository (Directory => '/home/cnighs/koha.3.2.test');
+
+my @git_command = ('cherry', '-v', $branch, $HEAD);
+push @git_command, $limit if $limit;
+
+my ($fh, $c) = $repo->command_output_pipe(@git_command);
+my @git_cherry = <$fh>;
+$repo->command_close_pipe($fh, $c);
+
 my $commit_list = {};
 my $no_bug_number = {};
 my $enhancements = {};
@@ -97,6 +111,7 @@ foreach (@git_cherry) {
         my $bug_number = $2;
         next if grep (/$bug_number/, @unapplied_bugfixes);
         next if grep (/$bug_number/, @unapplied_enhancements);
+        next if grep (/$bug_number/, @unclean_commits);
         push (@{$commit_list->{"$bug_number"}}, $commit_id); # catalog commits with a bug number based on bug number
     }
     elsif ($_ !~ m/^\-/) {
@@ -151,15 +166,16 @@ if (scalar(keys(%$commit_list))) {
         while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n)") {
             if ($_ =~ m/^[Y|y]/) {
                     foreach my $commit_id (@{$bug_fixes->{$bug_number}}) {
-                        my $command = "git cherry-pick -x -s $commit_id";
-                        my @cherry_pick = qx|$command|;
-                        warn Dumper(\@cherry_pick);
-                        print join /\n/, @cherry_pick;
-                        if ( grep /failed/, @cherry_pick ){
-                            print "\n\nReverting failed cherry-pick...\n\n";
-                            print qx|git reset --hard HEAD|;
+#                        my @cherry_pick = ();
+#                        {exec ("git cherry-pick -x -s $commit_id") };
+                        my @git_command = ('cherry-pick', '-x', '-s', $commit_id);
+                        my ($fh, $c) = $repo->command_output_pipe(@git_command);
+                        my @cherry_pick = <$fh>;
+                        eval { $repo->command_close_pipe($fh, $c); };
+                        if ($@) {
+                            _revert($repo, $bug_number, $branch);
+                            next;
                         }
-
                     }
                 last;
                 }
@@ -217,7 +233,18 @@ while (scalar(keys(%$enhancements)) && prompt "Shall we review enhancements now?
     last;
 }
 
+print "Please review the following unclean commits:\n" . join '', @unclean_commits;
 
+exit 0;
 
-
-
+sub _revert {
+    my ($repo, $branch, $bug_number) = @_;
+    open(UC, ">>unclean_commits.$branch.txt");
+    print UC "$bug_number\n";
+    push @unclean_commits, $bug_number;
+    print "\n\nReverting failed cherry-pick...\n\n";
+    my ($fh, $c) = $repo->command_output_pipe('reset', '--hard', 'HEAD');
+    print <$fh>;
+    $repo->command_close_pipe($fh, $c);
+    close UC;
+}
