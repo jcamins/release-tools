@@ -42,7 +42,7 @@ GetOptions(
     'b|branch:s'    => \$branch,
     'h|head:s'      => \$HEAD,
     'l|limit:s'     => \$limit,
-    'h|help|?'      => \$help,
+    'help|?'        => \$help,
     'v|verbose'     => \$verbose,
 );
 
@@ -57,12 +57,16 @@ a list for manual review of the missing enhancements.
 This script has the following parameters :
     -b --branch: branch to compare against 'HEAD' ('HEAD' is 'master' by default)
     -h --head: 'HEAD' other than 'master' against which to compare 'branch'
-    -h --help: this message
+    -l --limit: if a limit (a commit id <sha1>) is given then commits along the HEAD branch
+                up to and including the limit will not be reported
+    --help: this message
     -v --verbose: provides verbose output to STDOUT
 
 ENDUSAGE
 
 die $usage if $help;
+
+my $bugs = {};
 
 my @unapplied_bugfixes = ();
 my @unapplied_anonfixes = ();
@@ -99,6 +103,8 @@ my ($fh, $c) = $repo->command_output_pipe(@git_command);
 my @git_cherry = <$fh>;
 $repo->command_close_pipe($fh, $c);
 
+my $commit_count = scalar(@git_cherry);
+
 my $commit_list = {};
 my $no_bug_number = {};
 my $enhancements = {};
@@ -109,6 +115,7 @@ foreach (@git_cherry) {
     my $commit_id = $1;
     if ($_ =~ m/^\+.*([B|b]ug|BZ)?\s?(?<=\s)(\d+)(?=[\s|:|,])/g) {
         my $bug_number = $2;
+        print "Found bug number: $bug_number\n" if $verbose;
         next if grep (/$bug_number/, @unapplied_bugfixes);
         next if grep (/$bug_number/, @unapplied_enhancements);
         next if grep (/$bug_number/, @unclean_commits);
@@ -116,15 +123,24 @@ foreach (@git_cherry) {
     }
     elsif ($_ !~ m/^\-/) {
         next if grep (/$commit_id/, @unapplied_anonfixes);
+        print "Found commit missing bug number; commit id: $commit_id\n" if $verbose;
         push (@{$no_bug_number->{"$commit_id"}}, $commit_id); # catalog commits without a bug number based on commit id
     }
     elsif ($_ =~ m/^\-/) {
+        $commit_count--;
         # do some stuff
     }
     else {
         # do some other stuff
     }
 }
+
+print "\n\n$commit_count commits found which are in $HEAD but not in $branch\n\n";
+print "Of these, " . scalar(@unapplied_bugfixes) . " are unapplied bugfixes,\n";
+print scalar(@unapplied_anonfixes) . " are unapplied commits with no bug number,\n";
+print scalar(@unapplied_enhancements) . " are unapplied enhancements,\n";
+print scalar(@unclean_commits) . " are commits which do not apply cleanly,\n";
+print "and some may be multiple commits for a single bug number.\n\n";
 
 if (scalar(keys(%$commit_list)) == 0 && scalar(keys(%$no_bug_number)) == 0) {
     print "\nCongratulations!! There are no new commits to pick!\n\n";
@@ -153,7 +169,9 @@ if (scalar(keys(%$commit_list))) {
     while (scalar @csv_file) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
-        #print "Bug Number: $fields[0], Bug Type: $fields[1]\n";
+        push @{$bugs->{$fields[0]}}, $fields[1];
+        push @{$bugs->{$fields[0]}}, $fields[2];
+        print "Bug Number: $fields[0], Bug Type: $fields[1], Short Desc: $fields[2]\n";
         if ($fields[1] =~ m/(enhancement)/) {
             push (@{$enhancements->{"$fields[0]"}}, @{$commit_list->{"$fields[0]"}});
         }
@@ -162,48 +180,74 @@ if (scalar(keys(%$commit_list))) {
         }
     }
 
+    BUGFIXES:
     foreach my $bug_number (keys(%$bug_fixes)) {
-        while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n)") {
+        while( prompt "Shall I apply the bugfix(s) for $bug_number? (Y/n/s/v/q)") {
             if ($_ =~ m/^[Y|y]/) {
                     foreach my $commit_id (@{$bug_fixes->{$bug_number}}) {
-#                        my @cherry_pick = ();
-#                        {exec ("git cherry-pick -x -s $commit_id") };
                         my @git_command = ('cherry-pick', '-x', '-s', $commit_id);
                         my ($fh, $c) = $repo->command_output_pipe(@git_command);
                         my @cherry_pick = <$fh>;
                         eval { $repo->command_close_pipe($fh, $c); };
                         if ($@) {
-                            _revert($repo, $bug_number, $branch);
+                            _revert(\@unclean_commits, $repo, $bug_number, $branch);
                             next;
                         }
                     }
                 last;
-                }
-            else {
+            }
+            elsif ($_ =~ m/^[v]/) {
+                print "\nBug Number: $bug_number, Bug Type: $@$bugs->{$bug_number}[0], Short Desc: $@$bugs->{$bug_number}[1]\n\n";
+            }
+            elsif ($_ =~ m/^[q]/) {
+                last BUGFIXES;
+            }
+            elsif ($_ =~ m/^[n]/) {
                 open(BF, ">>unapplied_bugfixes.$branch.txt");
                 print BF "$bug_number\n";
                 close BF;
+                last;
+            }
+            else {
+                print "Skipping bug $bug_number\n\n";
                 last;
             }
         }
     }
 }
 
+
 while (scalar(keys(%$no_bug_number)) && prompt "Shall we review commits without bug numbers now? (Y/n)") {
     last if $_ =~ m/^[N|n]/;
+
+    NOBUGNUM:
     foreach my $commit_number (keys(%$no_bug_number)) {
-        while( prompt "Shall I apply commit number $commit_number? (Y/n)") {
+        while( prompt "Shall I apply commit number $commit_number? (Y/n/s/v/q)") {
             if ($_ =~ m/^[Y|y]/) {
                     foreach my $commit_id (@{$no_bug_number->{$commit_number}}) {
-                        my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
-                        print $cherry_pick;
+                        my @git_command = ('cherry-pick', '-x', '-s', $commit_id);
+                        my ($fh, $c) = $repo->command_output_pipe(@git_command);
+                        my @cherry_pick = <$fh>;
+                        eval { $repo->command_close_pipe($fh, $c); };
+                        if ($@) {
+                            _revert(\@unclean_commits, $repo, $commit_id, $branch);
+                            last;
+                        }
                     }
-                last;
-                }
-            else {
+            }
+            elsif ($_ =~ m/^[v]/) {
+                print qx|git log --oneline -1 $commit_number|;
+            }
+            elsif ($_ =~ m/^[q]/) {
+                last NOBUGNUM;
+            }
+            elsif ($_ =~ m/^[n]/) {
                 open(AF, ">>unapplied_anonfixes.$branch.txt");
                 print AF "$commit_number\n";
                 close AF;
+                last;
+            }
+            else {
                 last;
             }
         }
@@ -213,19 +257,36 @@ while (scalar(keys(%$no_bug_number)) && prompt "Shall we review commits without 
 
 while (scalar(keys(%$enhancements)) && prompt "Shall we review enhancements now? (Y/n)") {
     last if $_ =~ m/^[N|n]/;
+
+    ENHANCE:
     foreach my $bug_number (keys(%$enhancements)) {
-        while( prompt "Shall I apply enhancement $bug_number? (Y/n)") {
+        while( prompt "Shall I apply enhancement $bug_number? (Y/n/s/v/q)") {
             if ($_ =~ m/^[Y|y]/) {
                     foreach my $commit_id (@{$enhancements->{$bug_number}}) {
-                        my $cherry_pick = qx|git cherry-pick -x -s $commit_id|;
-                        print $cherry_pick;
+                        my @git_command = ('cherry-pick', '-x', '-s', $commit_id);
+                        my ($fh, $c) = $repo->command_output_pipe(@git_command);
+                        my @cherry_pick = <$fh>;
+                        eval { $repo->command_close_pipe($fh, $c); };
+                        if ($@) {
+                            _revert(\@unclean_commits, $repo, $bug_number, $branch);
+                            next;
+                        }
                     }
                 last;
-                }
-            else {
+            }
+            elsif ($_ =~ m/^[v]/) {
+                print "\nBug Number: $bug_number, Bug Type: $@$bugs->{$bug_number}[0], Short Desc: $@$bugs->{$bug_number}[1]\n\n";
+            }
+            elsif ($_ =~ m/^[q]/) {
+                last ENHANCE;
+            }
+            elsif ($_ =~ m/^[n]/) {
                 open(EN, ">>unapplied_enhancements.$branch.txt");
                 print EN "$bug_number\n";
                 close EN;
+                last;
+            }
+            else {
                 last;
             }
         }
@@ -233,15 +294,16 @@ while (scalar(keys(%$enhancements)) && prompt "Shall we review enhancements now?
     last;
 }
 
-print "Please review the following unclean commits:\n" . join '', @unclean_commits;
+print "Please review the following unclean commits:\n" . join '', @unclean_commits . "\n\n";
 
 exit 0;
 
 sub _revert {
-    my ($repo, $branch, $bug_number) = @_;
+    my $unclean_commits = shift;
+    my ($repo, $bug_number, $branch) = @_;
     open(UC, ">>unclean_commits.$branch.txt");
     print UC "$bug_number\n";
-    push @unclean_commits, $bug_number;
+    push @$unclean_commits, $bug_number;
     print "\n\nReverting failed cherry-pick...\n\n";
     my ($fh, $c) = $repo->command_output_pipe('reset', '--hard', 'HEAD');
     print <$fh>;
