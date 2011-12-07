@@ -32,7 +32,11 @@ use IO::Prompt;
 #   3. Add exit status code
 #   4. Add help
 
-my $branch  = undef;
+# Try to determine the current branch and set that as the default
+my $branch = qx/git branch | grep ^*/;
+$branch =~ m/^\*\s(.*)$/;
+$branch = $1;
+
 my $HEAD    = 'master';
 my $limit   = 0;
 my $help    = 0;
@@ -113,7 +117,7 @@ my $bug_fixes = {};
 foreach (@git_cherry) {
     $_ =~ m/^\+\s([0-9a-z]+)/;
     my $commit_id = $1;
-    if ($_ =~ m/^\+.*([B|b]ug|BZ)?\s?(?<=\s)(\d+)(?=[\s|:|,])/g) {
+    if ($_ =~ m/^\+.*([B|b]ug|BZ)\s?(?<=\s)(\d+)(?=[\s|:|,])/g) {
         my $bug_number = $2;
         print "Found bug number: $bug_number\n" if $verbose;
         next if grep (/$bug_number/, @unapplied_bugfixes);
@@ -123,6 +127,7 @@ foreach (@git_cherry) {
     }
     elsif ($_ !~ m/^\-/) {
         next if grep (/$commit_id/, @unapplied_anonfixes);
+        next if grep (/$commit_id/, @unclean_commits);
         print "Found commit missing bug number; commit id: $commit_id\n" if $verbose;
         push (@{$no_bug_number->{"$commit_id"}}, $commit_id); # catalog commits without a bug number based on commit id
     }
@@ -231,9 +236,10 @@ while (scalar(keys(%$no_bug_number)) && prompt "Shall we review commits without 
                         eval { $repo->command_close_pipe($fh, $c); };
                         if ($@) {
                             _revert(\@unclean_commits, $repo, $commit_id, $branch);
-                            last;
+                            next;
                         }
                     }
+                    last;
             }
             elsif ($_ =~ m/^[v]/) {
                 print qx|git log --oneline -1 $commit_number|;
@@ -294,19 +300,21 @@ while (scalar(keys(%$enhancements)) && prompt "Shall we review enhancements now?
     last;
 }
 
-print "Please review the following unclean commits:\n" . join '', @unclean_commits . "\n\n";
+print "Please review the following unclean commits:\n- " . (join '- ', @unclean_commits) . "\n\n";
 
 exit 0;
 
 sub _revert {
     my $unclean_commits = shift;
     my ($repo, $bug_number, $branch) = @_;
-    open(UC, ">>unclean_commits.$branch.txt");
-    print UC "$bug_number\n";
-    push @$unclean_commits, $bug_number;
     print "\n\nReverting failed cherry-pick...\n\n";
     my ($fh, $c) = $repo->command_output_pipe('reset', '--hard', 'HEAD');
     print <$fh>;
     $repo->command_close_pipe($fh, $c);
+    return if grep (/$bug_number/, @$unclean_commits); # Don't add to the list if it is already there
+    print"\n\nAdding $bug_number to the unclean_commits.$branch.txt file.\n\n";
+    open(UC, ">>unclean_commits.$branch.txt");
+    print UC "$bug_number\n";
+    push @$unclean_commits, $bug_number;
     close UC;
 }
