@@ -31,7 +31,7 @@
 # SKIP_INSTALL: skip testing the package and tarball installation
 
 export PERL5LIB=`pwd`
-RELTOOLS=`dirname $0`
+RELTOOLS=$(cd $(dirname "$0"); pwd)
 
 START=$(date +%s)
 START_FMT=`date`
@@ -41,6 +41,8 @@ if [ -n "$1" ]; then
 else
     RELDIR=$HOME/releases
 fi
+
+MARCFLAVOURS='MARC21 UNIMARC NORMARC'
 
 BRANCH=`git branch | grep '*' | sed -e 's/^* //' -e 's#/#-#'`
 VERSION=`grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/';//"`
@@ -77,87 +79,113 @@ fi
 if [ -z "$FAILURE" ] && [ -z "$SKIP_DEB" ] && [ -z "$SKIP_INSTALL" ]; then
     echo "Installing package..."
     sudo dpkg -i $PKGFILE > $TMPFILE 2>&1 || FAILURE='Installing package';
+    cat > /tmp/koha-sites.conf <<EOF
+OPACPORT=9003
+INTRAPORT=9004
+EOF
+    sudo mv /tmp/koha-sites.conf /etc/koha/koha-sites.conf
 fi
-if [ -z "$FAILURE" ] && [ -z "$SKIP_TGZ" ] && [ -z "$SKIP_INSTALL" ]; then
-    echo "Installing from tarball..."
-    export INSTALL_BASE=$RELDIR/fresh/koha
-    export DESTDIR=$RELDIR/fresh
-    export KOHA_CONF_DIR=$RELDIR/fresh/etc
-    export ZEBRA_CONF_DIR=$RELDIR/fresh/etc/zebradb
-    export PAZPAR2_CONF_DIR=$RELDIR/fresh/etc/pazpar2
-    export ZEBRA_LOCK_DIR=$RELDIR/fresh/var/lock/zebradb
-    export ZEBRA_DATA_DIR=$RELDIR/fresh/var/lib/zebradb
-    export ZEBRA_RUN_DIR=$RELDIR/fresh/var/run/zebradb
-    export LOG_DIR=$RELDIR/fresh/var/log
-    export INSTALL_MODE=standard
-    export DB_TYPE=mysql
-    export DB_HOST=localhost
-    export DB_NAME=koharel
-    export DB_USER=koharel
-    export DB_PASS=koharel
-    export INSTALL_ZEBRA=yes
-    export INSTALL_SRU=no
-    export INSTALL_PAZPAR2=no
-    export ZEBRA_MARC_FORMAT=marc21
-    export ZEBRA_LANGUAGE=en
-    export ZEBRA_USER=kohauser
-    export ZEBRA_PASS=zebrastripes
-    export KOHA_USER=`id -u -n`
-    export KOHA_GROUP=`id -g -n`
-    mkdir -p $RELDIR/fresh
-    tar zxvf $ARCHIVEFILE -C /tmp > $TMPFILE 2>&1 || FAILURE="Untarring tarball"
-    cd /tmp/koha-$VERSION
-    if [ -z "$FAILURE" ]; then
-        echo -e " Running perl Makefile.PL..."
-        yes '' | perl Makefile.PL > $TMPFILE 2>&1 || FAILURE="Running Makefile.PL";
-    fi
-    if [ -z "$FAILURE" ]; then
-        echo -e " Running make..."
-        make > $TMPFILE 2>&1 || FAILURE="Running make";
-    fi
-    if [ -z "$FAILURE" ]; then
-        echo -e " Running make test..."
-        make test > $TMPFILE 2>&1 || FAILURE="Running make test";
-    fi
-    if [ -z "$FAILURE" ]; then
-        echo -e " Running make install..."
-        make install > $TMPFILE 2>&1 || FAILURE="Running make install";
-        sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' $RELDIR/fresh/etc/koha-httpd.conf
-    fi
 
-
-    if [ -z "$SKIP_WEBINSTALL" ]; then
+for FLAVOUR in $MARCFLAVOURS; do
+    VAR=SKIP_$FLAVOUR
+    if [ -z "$FAILURE" ] && [ -z "$SKIP_DEB" ] && [ -z "$SKIP_INSTALL" ] && [ -z "${!VAR}" ]; then
+        echo "Installing from package for $FLAVOUR..."
         if [ -z "$FAILURE" ]; then
-            mysql -u koharel -pkoharel -e "CREATE DATABASE koharel;" > $TMPFILE 2>&1 || FAILURE="Creating database";
+            echo " Running koha-create for $FLAVOUR..."
+            sudo koha-create --marcflavor=`echo $FLAVOUR | tr '[:upper:]' '[:lower:]'` --create-db pkgrel > $TMPFILE 2>&1 ||  FAILURE="Koha-create for $FLAVOUR";
+        fi
+        if [ -z "$FAILURE" ] && [ -z "$SKIP_WEBINSTALL" ]; then
+            echo " Running webinstaller for $FLAVOUR..."
+            prove $RELTOOLS/install-fresh.pl :: http://localhost:9004 http://localhost:9003 $FLAVOUR `sudo xmlstarlet sel -t -v 'yazgfs/config/user' '/etc/koha/sites/pkgrel/koha-conf.xml'` `sudo xmlstarlet sel -t -v 'yazgfs/config/pass' '/etc/koha/sites/pkgrel/koha-conf.xml'` > $TMPFILE 2>&1 || FAILURE="Running webinstaller for $FLAVOUR";
+        fi
+        echo " Cleaning up package install for $FLAVOUR..."
+        sudo koha-remove pkgrel > $TMPFILE 2>&1 || FAILURE="Koha-remove for $FLAVOUR"
+    fi
+done
+
+for FLAVOUR in $MARCFLAVOURS; do
+    VAR=SKIP_$FLAVOUR
+    if [ -z "$FAILURE" ] && [ -z "$SKIP_TGZ" ] && [ -z "$SKIP_INSTALL" ] && [ -z "${!VAR}" ]; then
+        echo "Installing from tarball for $FLAVOUR..."
+        export INSTALL_BASE=$RELDIR/fresh/koha
+        export DESTDIR=$RELDIR/fresh
+        export KOHA_CONF_DIR=$RELDIR/fresh/etc
+        export ZEBRA_CONF_DIR=$RELDIR/fresh/etc/zebradb
+        export PAZPAR2_CONF_DIR=$RELDIR/fresh/etc/pazpar2
+        export ZEBRA_LOCK_DIR=$RELDIR/fresh/var/lock/zebradb
+        export ZEBRA_DATA_DIR=$RELDIR/fresh/var/lib/zebradb
+        export ZEBRA_RUN_DIR=$RELDIR/fresh/var/run/zebradb
+        export LOG_DIR=$RELDIR/fresh/var/log
+        export INSTALL_MODE=standard
+        export DB_TYPE=mysql
+        export DB_HOST=localhost
+        export DB_NAME=koharel
+        export DB_USER=koharel
+        export DB_PASS=koharel
+        export INSTALL_ZEBRA=yes
+        export INSTALL_SRU=no
+        export INSTALL_PAZPAR2=no
+        export ZEBRA_MARC_FORMAT=`echo $FLAVOUR | tr '[:upper:]' '[:lower:]'`
+        export ZEBRA_LANGUAGE=en
+        export ZEBRA_USER=kohauser
+        export ZEBRA_PASS=zebrastripes
+        export KOHA_USER=`id -u -n`
+        export KOHA_GROUP=`id -g -n`
+        mkdir -p $RELDIR/fresh
+        tar zxvf $ARCHIVEFILE -C /tmp > $TMPFILE 2>&1 || FAILURE="Untarring tarball for $FLAVOUR"
+        cd /tmp/koha-$VERSION
+        if [ -z "$FAILURE" ]; then
+            echo -e " Running perl Makefile.PL for $FLAVOUR..."
+            yes '' | perl Makefile.PL > $TMPFILE 2>&1 || FAILURE="Running Makefile.PL for $FLAVOUR";
         fi
         if [ -z "$FAILURE" ]; then
-            echo " Adding to sites-available..."
-            sudo ln -s $RELDIR/fresh/etc/koha-httpd.conf /etc/apache2/sites-available/release-fresh > $TMPFILE 2>&1 || FAILURE="Adding to sites-available";
+            echo -e " Running make for $FLAVOUR..."
+            make > $TMPFILE 2>&1 || FAILURE="Running make for $FLAVOUR";
         fi
         if [ -z "$FAILURE" ]; then
-            echo " Enabling site..."
-            sudo a2ensite release-fresh > $TMPFILE 2>&1 || FAILURE="Enabling site";
+            echo -e " Running make test for $FLAVOUR..."
+            make test > $TMPFILE 2>&1 || FAILURE="Running make test for $FLAVOUR";
         fi
         if [ -z "$FAILURE" ]; then
-            echo " Restarting Apache..."
-            sudo apache2ctl restart > $TMPFILE 2>&1 || FAILURE="Restarting Apache";
+            echo -e " Running make install for $FLAVOUR..."
+            make install > $TMPFILE 2>&1 || FAILURE="Running make install for $FLAVOUR";
+            sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' $RELDIR/fresh/etc/koha-httpd.conf
         fi
+     
+     
+        if [ -z "$SKIP_WEBINSTALL" ]; then
+            if [ -z "$FAILURE" ]; then
+                mysql -u koharel -pkoharel -e "CREATE DATABASE koharel;" > $TMPFILE 2>&1 || FAILURE="Creating database for $FLAVOUR";
+            fi
+            if [ -z "$FAILURE" ]; then
+                echo " Adding to sites-available for $FLAVOUR..."
+                sudo ln -s $RELDIR/fresh/etc/koha-httpd.conf /etc/apache2/sites-available/release-fresh > $TMPFILE 2>&1 || FAILURE="Adding to sites-available for $FLAVOUR";
+            fi
+            if [ -z "$FAILURE" ]; then
+                echo " Enabling site for $FLAVOUR..."
+                sudo a2ensite release-fresh > $TMPFILE 2>&1 || FAILURE="Enabling site for $FLAVOUR";
+            fi
+            if [ -z "$FAILURE" ]; then
+                echo " Restarting Apache for $FLAVOUR..."
+                sudo apache2ctl restart > $TMPFILE 2>&1 || FAILURE="Restarting Apache for $FLAVOUR";
+            fi
 
-        if [ -z "$FAILURE" ]; then
-            echo " Running webinstaller..."
-            prove $RELTOOLS/install-fresh.pl :: http://localhost:9002 http://localhost:9001 $RELDIR/fresh > $TMPFILE 2>&1 || FAILURE="Running webinstaller";
+            if [ -z "$FAILURE" ]; then
+                echo " Running webinstaller for $FLAVOUR..."
+                prove $RELTOOLS/install-fresh.pl :: http://localhost:9002 http://localhost:9001 $FLAVOUR koharel koharel > $TMPFILE 2>&1 || FAILURE="Running webinstaller for $FLAVOUR";
+            fi
+     
+            echo " Cleaning up for $FLAVOUR..."
+            mysql -u koharel -pkoharel -e "DROP DATABASE koharel;" > /dev/null 2>&1
+            sudo a2dissite release-fresh > /dev/null 2>&1
+            sudo apache2ctl restart > /dev/null 2>&1
+            sudo rm /etc/apache2/sites-available/release-fresh > /dev/null 2>&1
         fi
-
-        echo " Cleaning up..."
-        mysql -u koharel -pkoharel -e "DROP DATABASE koharel;" > /dev/null 2>&1
-        sudo a2dissite release-fresh > /dev/null 2>&1
-        sudo apache2ctl restart > /dev/null 2>&1
-        sudo rm /etc/apache2/sites-available/release-fresh > /dev/null 2>&1
+     
+        rm -Rf /tmp/koha-$VERSION > /dev/null 2>&1
+        rm -Rf $RELDIR/fresh > /dev/null 2>&1
     fi
-
-    rm -Rf /tmp/koha-$VERSION > /dev/null 2>&1
-    rm -Rf $RELDIR/fresh > /dev/null 2>&1
-fi
+done
 
 if [ -n "$FAILURE" ]; then cp $TMPFILE $RELDIR/errors.log; fi
 
