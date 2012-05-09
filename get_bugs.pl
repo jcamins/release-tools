@@ -97,7 +97,7 @@ print "Found " . scalar @bug_list . " bugs in this search\n\n" if $verbose;
 
 my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_severity%2Cbug_id&bug_id=";
 $url .= join '%2C', @bug_list;
-$url .= "&bug_id_type=anyexact&query_format=advanced&ctype=csv";
+$url .= "&bug_id_type=anyexact&query_format=advanced&ctype=csv&columnlist=bug_severity%2Cshort_desc";
 
 print "URL: $url\n" if $verbose;
 
@@ -110,17 +110,33 @@ my @columns = $csv->fields;
 
 my $highlights = '';
 my $bugfixes = '';
+my $sysprefs = '';
 
 while (scalar @csv_file) {
     $csv->parse(shift @csv_file);
     my @fields = $csv->fields;
     if ($fields[1] =~ m/(blocker|critical|major)/) {
-        $highlights .= "$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[7]\n";
+        $highlights .= "$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
     }
     elsif ($fields[1] =~ m/(normal|enhancement)/) {
-        $bugfixes .= "$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[7]\n";
+        $bugfixes .= "$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
     }
 }
+
+open (SYSPREFS, "git diff $tag installer/data/mysql/sysprefs.sql | grep '^+[^+]' | sed -e 's/^\+//' |");
+my @syspref_queries = <SYSPREFS>;
+close SYSPREFS;
+
+my @sysprefs;
+foreach my $queryline (@syspref_queries) {
+    $queryline =~ m/\(([^)]*)\)\s*VALUES\s*\(([^)]*)\)/;
+    my @columns = split(/,/, $1);
+    my @values = split(/,/, $2);
+    my $variable = $values[(grep { $columns[$_] eq 'variable' } 0..$#columns) - 1];
+    $variable =~ s/['"`]//g;
+    push @sysprefs, $variable;
+}
+$sysprefs = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n";
 
 open (RNOTESTMPL, "< misc/release_notes/$template");
 my @release_notes = <RNOTESTMPL>;
@@ -131,13 +147,16 @@ open (RNOTES, "> misc/release_notes/$rnotes");
 foreach my $line (@release_notes) {
     if ($line =~ m/<<([a-z|_]+)>>(.*?)/g) { # why?
         my $key_word = $1;
-        print "Keyword found: $key_word\n\n";
+        print "Keyword found: $key_word\n\n" if $verbose;
         #   Find and replace template markers
         if ($key_word eq 'highlights') {
             $line =~ s/<<highlights>>/$highlights/;
         }
         if ($key_word eq 'bugfixes') {
             $line =~ s/<<bugfixes>>/$bugfixes/;
+        }
+        if ($key_word eq 'sysprefs') {
+            $line =~ s/<<sysprefs>>/$sysprefs/;
         }
         if ($key_word eq 'contributors') {
             # Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
@@ -152,16 +171,16 @@ foreach my $line (@release_notes) {
             $line =~ s/<<contributors>>/$contributors/;
         }
         if ($key_word eq 'version') {
-            print "Simplified version number: $simplified_version\n\n";
+            print "Simplified version number: $simplified_version\n\n" if $verbose;
             $line =~ s/<<version>>/$simplified_version/;
         }
         if ($key_word eq 'expanded_version') {
-            print "Expanded version number: $expanded_version\n\n";
+            print "Expanded version number: $expanded_version\n\n" if $verbose;
             $line =~ s/<<expanded_version>>/$expanded_version/;
         }
         if ($key_word eq 'date') {
             my $current_date = strftime "%d %b %Y", gmtime;
-            print "Datestamp of release notes: $current_date\n\n";
+            print "Datestamp of release notes: $current_date\n\n" if $verbose;
             $line =~ s/<<date>>/$current_date/;
         }
     }
