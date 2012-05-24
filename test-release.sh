@@ -68,13 +68,16 @@ if [ -z "$FAILURE" ] && [ -z "$SKIP_DEB" ]; then
 fi
 if [ -z "$FAILURE" ] && [ -z "$SKIP_DEB" ]; then
     echo "Building packages..."
-    debian/build-git-snapshot -r $RELDIR > $TMPFILE 2>&1 || FAILURE='Building package';
+    DEBEMAIL=jcamins@cpbibliography.com debian/build-git-snapshot -D $BRANCH -r $RELDIR > $TMPFILE 2>&1 || FAILURE='Building package';
     PKGFILE=$RELDIR/`grep "dpkg-deb: building package .koha-common." $TMPFILE | sed -e 's#^[^/]*/##' | sed -e "s/'\.$//"`
     if [ "$PKGFILE" = "$RELDIR/" ]; then FAILURE='Building package'; fi
 fi
 if [ -z "$FAILURE" ] && [ -z "$SKIP_TGZ" ]; then
     echo "Preparing release tarball..."
     git archive --format=tar --prefix=koha-$VERSION/ $BRANCH | gzip > $ARCHIVEFILE 2> $TMPFILE || FAILURE='Creating archive';
+    gpg -sb $ARCHIVEFILE || FAILURE='Signing archive';
+    md5sum $ARCHIVEFILE > $ARCHIVEFILE.MD5 || FAILURE='Md5summing archive';
+    gpg --clearsign $ARCHIVEFILE.MD5 || FAILURE='Signing md5sum';
 fi
 if [ -z "$FAILURE" ] && [ -z "$SKIP_DEB" ] && [ -z "$SKIP_INSTALL" ]; then
     echo "Installing package..."
