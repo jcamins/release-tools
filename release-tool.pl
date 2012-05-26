@@ -570,6 +570,21 @@ The e-mail address of the maintainer. Defaults to the value of git config
 
 =back
 
+=head1 DPUT CONFIGURATION
+
+In order for the deploy step to work, you will need to have a signed apt repository
+set up. Once you have set up your repo, put the following in your  ~/.dput.cf:
+
+    [koha]
+    method = local
+    incoming = /home/apt/koha/incoming
+    run_dinstall = 0
+    post_upload_command = reprepro -b /home/apt/koha processincoming default
+
+=head1 SEE ALSO
+
+dch(1), dput(1), pbuilder(8), reprepro(1)
+
 =head1 AUTHOR
 
 Jared Camins-Esakov <jcamins@cpbibliography.com>
