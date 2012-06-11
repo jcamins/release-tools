@@ -21,7 +21,6 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 use File::Spec;
-use File::Temp qw/tempfile/;
 use File::Copy;
 use Data::Dumper;
 use File::Basename;
@@ -64,6 +63,7 @@ my $output;
 my $maintainername;
 my $maintaineremail;
 my $drh;
+my $verbose;
 
 my $options = GetOptions(
     'q|quiet'        => \$quiet,
@@ -72,6 +72,7 @@ my $options = GetOptions(
     'd|deploy'       => \$deploy,
     'c|clean'        => \$clean,
     'a|autoversion'  => \$autoversion,
+    'v|verbose'      => \$verbose,
     'skip-tests'     => \$skip{tests},
     'skip-deb'       => \$skip{deb},
     'skip-tgz'       => \$skip{tgz},
@@ -136,8 +137,6 @@ unlink "$build_result/errors.log";
 print_log(colored("Starting release test at " . strftime('%D %T', localtime($starttime)), 'blue'));
 print_log("\tBranch:  $branch\n\tVersion: $version\n");
 
-my ($tempfh, $tempfilename) = tempfile();
-
 unless ($skip{tests}) {
     tap_task("Running unit tests", 0, undef, tap_dir("$kohaclone/t/"),
         tap_dir("$kohaclone/t/db_dependent/"),
@@ -154,7 +153,7 @@ unless ($skip{tests}) {
 unless ($skip{deb}) {
     unless ($skip{pbuilder}) {
         print_log("Updating pbuilder...");
-        $output = `sudo pbuilder update 2>&1`;
+        run_cmd("sudo pbuilder update 2>&1");
         warn colored("Error updating pbuilder. Continuing anyway.", 'bold red') if ($?);
     }
 
@@ -186,12 +185,12 @@ unless ($skip{tgz}) {
 unless ($skip{deb} || $skip{install}) {
     shell_task("Installing package...", "sudo dpkg -i $pkg_file 2>&1");
 
-    open (KOHA_SITES, '>/tmp/koha-sites.conf');
+    open (KOHA_SITES, '>', '/tmp/koha-sites.conf');
     print KOHA_SITES <<EOF;
 OPACPORT=9003
 INTRAPORT=9004
 EOF
-    system('sudo mv /tmp/koha-sites.conf /etc/koha/koha-sites.conf');
+    run_cmd('sudo mv /tmp/koha-sites.conf /etc/koha/koha-sites.conf');
 
     for my $flavour (@marcflavours) {
         my $lflavour = lc $flavour;
@@ -253,11 +252,12 @@ unless ($skip{tgz} || $skip{install}) {
         $ENV{ZEBRA_PASS}="zebrastripes";
         $ENV{KOHA_USER}="`id -u -n`";
         $ENV{KOHA_GROUP}="`id -g -n`";
+        $ENV{PERL_MM_USE_DEFAULT}="1";
         mkdir "$build_result/fresh";
         shell_task("Untarring tarball for $flavour", "tar zxvf $tgz_file -C /tmp 2>&1", 1);
         chdir "/tmp/koha-$version";
 
-        shell_task("Running perl Makefile.PL for $flavour", "yes '' 2> /dev/null | perl Makefile.PL 2>&1", 1);
+        shell_task("Running perl Makefile.PL for $flavour", "perl Makefile.PL 2>&1", 1);
 
         shell_task("Running make for $flavour...", "make 2>&1", 1);
 
@@ -265,7 +265,7 @@ unless ($skip{tgz} || $skip{install}) {
 
         shell_task("Running make install for $flavour...", "make install 2>&1", 1);
 
-        system("sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' $build_result/fresh/etc/koha-httpd.conf");
+        run_cmd("sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' $build_result/fresh/etc/koha-httpd.conf");
      
         unless ($skip{webinstall}) {
             print_log(" Creating database for $flavour...");
@@ -303,9 +303,9 @@ success();
 sub clean_tgz_webinstall {
     print_log(" Cleaning up tarball install...");
     $drh->func('dropdb', $database, 'localhost', $db_user, $db_pass, 'admin');
-    system("sudo a2dissite release-fresh > /dev/null 2>&1");
-    system("sudo apache2ctl restart > /dev/null 2>&1");
-    system("sudo rm /etc/apache2/sites-available/release-fresh > /dev/null 2>&1");
+    run_cmd("sudo a2dissite release-fresh 2>&1");
+    run_cmd("sudo apache2ctl restart 2>&1");
+    run_cme("sudo rm /etc/apache2/sites-available/release-fresh 2>&1");
     clean_tgz();
 }
 
@@ -353,9 +353,6 @@ _SUMMARY_
 }
 
 sub success {
-    close $tempfh;
-    unlink $tempfilename;
-
     summary();
     print colored("Successfully finished release test", 'green'), "\n";
 
@@ -366,18 +363,13 @@ sub fail {
     my $component = shift;
     my $callback = shift;
 
-    close $tempfh;
-
     print colored($component, 'bold red'), colored(" failed in release test", 'red'), "\n";
 
     summary();
     print colored($component, 'bold red'), colored(" failed in release test", 'red'), "\n";
 
-    if (-s $tempfilename) {
-        move($tempfilename, "$build_result/errors.log");
-    } else {
-        unlink $tempfilename;
-        open(my $errorlog, ">$build_result/errors.log") or die "Unable to open error log for writing";
+    if ($output) {
+        open(my $errorlog, ">", "$build_result/errors.log") or die "Unable to open error log for writing";
         print $errorlog $output;
         close($errorlog);
     }
@@ -410,6 +402,17 @@ sub tap_dir {
     return @tests;
 }
 
+sub run_cmd {
+    my $command = shift;
+    print "\$ $command\n" if $verbose;
+    my $pid = open(my $outputfh, "-|", "$command") or die "Unable to run $command\n";
+    while (<$outputfh>) {
+        print $_ if $verbose;
+        $output .= $_;
+    }
+    close ($outputfh);
+}
+
 sub shell_task {
     my $message = shift;
     my $command = shift;
@@ -418,7 +421,8 @@ sub shell_task {
     my $subtask = shift || 0;
     my $logmsg = (' ' x $subtask) . $message;
     print_log("$logmsg...");
-    $output = `$command`;
+    $output = '';
+    run_cmd($command);
     fail($message, $callback) if ($?);
 }
 
@@ -431,13 +435,25 @@ sub tap_task {
     my @tests = @_;
     my $logmsg = (' ' x $subtask) . $message;
 
-    $harness_args->{'stdout'} = $tempfh;
     $harness_args->{'merge'} = 1;
 
     print_log("$logmsg...");
-    my $harness = TAP::Harness->new( $harness_args );
-    my $aggregator = $harness->runtests(@tests);
-    fail($message, $callback) if ($aggregator->failed);
+
+    my $pid = open(my $testfh, '-|') // die "Can't fork to run tests: $!\n";
+    if ($pid) {
+        while (<$testfh>) {
+            print $_ if $verbose;
+            $output .= $_;
+        }
+        waitpid($pid, 0);
+        fail($message, $callback) if ($?);
+        close($testfh);
+    } else {
+        my $harness = TAP::Harness->new( $harness_args );
+        my $aggregator = $harness->runtests(@tests);
+        exit 1 if $aggregator->failed;
+        exit 0;
+    }
 }
 
 sub interrupt {
@@ -473,6 +489,10 @@ Prints this help
 =item B<--quiet, -q>
 
 Don't display any status information while running.
+
+=item B<--verbose, -v>
+
+Provide verbose diagnostic information.
 
 =item B<--sign, -s>
 
