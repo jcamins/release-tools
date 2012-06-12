@@ -64,9 +64,19 @@ my $maintainername;
 my $maintaineremail;
 my $drh;
 my $verbose;
+my $deployed = 'no';
+my $signed_tarball = 'no';
+my $signed_packages = 'no';
+my $cleaned = 'no';
+my $skipped = '';
+my $finished_tests = 'no';
+my $built_tarball = 'no';
+my $built_packages = 'no';
+my @tested_tarball_installs;
+my @tested_package_installs;
 
 my $options = GetOptions(
-    'q|quiet'        => \$quiet,
+    'q|quiet+'        => \$quiet,
     'h|help'         => \$want_help,
     's|sign'         => \$sign,
     'd|deploy'       => \$deploy,
@@ -148,6 +158,7 @@ unless ($skip{tests}) {
         "$kohaclone/xt/permissions.t",
         "$kohaclone/xt/tt_valid.t"
         );
+        $finished_tests = 'yes';
 }
     
 unless ($skip{deb}) {
@@ -168,6 +179,8 @@ unless ($skip{deb}) {
     $pkg_file = "$build_result/$1";
 
     fail('Building package') unless (-f $pkg_file);
+
+    $built_packages = 'yes';
 }
 
 unless ($skip{tgz}) {
@@ -175,11 +188,16 @@ unless ($skip{tgz}) {
 
     shell_task("Creating archive", "git archive --format=tar --prefix=koha-$version/ $branch | gzip > $tgz_file", 1);
 
+    $built_tarball = 'yes';
+
     shell_task("Signing archive", "gpg -sb $tgz_file", 1) if ($sign);
 
     shell_task("md5summing archive", "md5sum $tgz_file > $tgz_file.MD5", 1);
 
-    shell_task("Signing md5sum", "gpg --clearsign $tgz_file.MD5", 1) if ($sign);
+    if ($sign) {
+        shell_task("Signing md5sum", "gpg --clearsign $tgz_file.MD5", 1);
+        $signed_tarball = 'yes';
+    }
 }
 
 unless ($skip{deb} || $skip{install}) {
@@ -210,6 +228,8 @@ EOF
                                                 "$pkg_pass" ]
             };
             tap_task("Running webinstaller for $flavour", 1, $harness_args, "$reltools/install-fresh.pl");
+
+            push @tested_package_installs, $flavour;
             
             clean_pkg_webinstall();
         }
@@ -217,10 +237,13 @@ EOF
 }
 
 if ($deploy && !$skip{deb}) {
-    shell_task("Signing packages", "debsign $build_result/*.changes") if ($sign);
+    if ($sign) {
+        shell_task("Signing packages", "debsign $build_result/*.changes");
+        $signed_packages = 'yes';
+    }
 
     shell_task("Importing packages to apt repo", "dput koha $build_result/*.changes");
-
+    $deployed = 'yes';
 }
 
 unless ($skip{tgz} || $skip{install}) {
@@ -286,6 +309,7 @@ unless ($skip{tgz} || $skip{install}) {
             tap_task("Running webinstaller for $flavour", 1, $harness_args, "$reltools/install-fresh.pl");
 
             clean_tgz_webinstall();
+            push @tested_tarball_installs, $flavour;
         } else {
             clean_tgz();
         }
@@ -296,6 +320,7 @@ unless ($skip{tgz} || $skip{install}) {
 if ($clean) {
     clean_tgz_webinstall();
     remove_tree($build_result);
+    $cleaned = 'yes';
 }
 
 success();
@@ -323,38 +348,46 @@ sub summary {
     my $totaltime = ceil (($endtime - $starttime) * 1000);
     $starttime = strftime('%D %T', localtime($starttime));
     $endtime = strftime('%D %T', localtime($endtime));
-    my $deployed = $deploy ? 'yes' : 'no';
-    my $signed = $sign ? 'yes' : 'no';
-    my $cleaned = $clean ? 'yes' : 'no';
     my $skipped = '';
+    my $tested_tarball_install = 'no';
+    my $tested_package_install = 'no';
+    $tested_tarball_install = join(', ', @tested_tarball_installs) if (scalar(@tested_tarball_installs));
+    $tested_package_install = join(', ', @tested_package_installs) if (scalar(@tested_package_installs));
     foreach my $key (sort keys %skip) {
         $skipped .= ", $key" if ($skip{$key});
     }
     $skipped =~ s/^, //;
     $pkg_file = 'none' unless (-s $pkg_file && not $skip{deb});
     $tgz_file = 'none' unless (-s $tgz_file && not $skip{tgz});
+    return if $quiet > 1;
     print <<_SUMMARY_;
 
 Release test report
 =======================================================
-Branch:             $branch
-Version:            $version
-Maintainer:         $maintainername <$maintaineremail>
-Run started at:     $starttime
-Run ended at:       $endtime
-Total run time:     $totaltime ms
-Skipped:            $skipped
-Deployed:           $deployed
-Signed:             $signed
-Cleaned:            $cleaned
-Tarball file:       $tgz_file
-Package file:       $pkg_file
+Branch:                 $branch
+Version:                $version
+Maintainer:             $maintainername <$maintaineremail>
+Run started at:         $starttime
+Run ended at:           $endtime
+Total run time:         $totaltime ms
+Skipped:                $skipped
+Finished tests:         $finished_tests
+Built packages:         $built_packages
+Tested package install: $tested_package_install
+Deployed packages:      $deployed
+Signed packages:        $signed_packages
+Built tarball:          $built_tarball
+Tested tarball install: $tested_tarball_install
+Signed tarball:         $signed_tarball
+Cleaned:                $cleaned
+Tarball file:           $tgz_file
+Package file:           $pkg_file
 _SUMMARY_
 }
 
 sub success {
     summary();
-    print colored("Successfully finished release test", 'green'), "\n";
+    print colored("Successfully finished release test", 'green'), "\n" unless $quiet > 1;
 
     exit 0;
 }
@@ -363,10 +396,10 @@ sub fail {
     my $component = shift;
     my $callback = shift;
 
-    print colored($component, 'bold red'), colored(" failed in release test", 'red'), "\n";
+    print colored($component, 'bold red'), colored(" failed in release test", 'red'), "\n" unless $quiet > 1;
 
     summary();
-    print colored($component, 'bold red'), colored(" failed in release test", 'red'), "\n";
+    print colored($component, 'bold red'), colored(" failed in release test", 'red'), "\n" unless $quiet > 1;
 
     if ($output) {
         open(my $errorlog, ">", "$build_result/errors.log") or die "Unable to open error log for writing";
@@ -374,7 +407,7 @@ sub fail {
         close($errorlog);
     }
 
-    print colored("Error report at $build_result/errors.log", 'red'), "\n";
+    print colored("Error report at $build_result/errors.log", 'red'), "\n" unless $quiet > 1;
 
     $callback->() if (ref $callback eq 'CODE');
 
@@ -404,7 +437,7 @@ sub tap_dir {
 
 sub run_cmd {
     my $command = shift;
-    print "\$ $command\n" if $verbose;
+    print colored("> $command\n", 'cyan') if $verbose;
     my $pid = open(my $outputfh, "-|", "$command") or die "Unable to run $command\n";
     while (<$outputfh>) {
         print $_ if $verbose;
@@ -494,7 +527,8 @@ Prints this help
 
 =item B<--quiet, -q>
 
-Don't display any status information while running.
+Don't display any status information while running. When specified
+twice, also suppress the summary.
 
 =item B<--verbose, -v>
 
