@@ -138,8 +138,8 @@ print_log(colored("Starting release test at " . strftime('%D %T', localtime($sta
 print_log("\tBranch:  $branch\n\tVersion: $version\n");
 
 unless ($skip{tests}) {
-    tap_task("Running unit tests", 0, undef, tap_dir("$kohaclone/t/"),
-        tap_dir("$kohaclone/t/db_dependent/"),
+    tap_task("Running unit tests", 0, undef, tap_dir("$kohaclone/t"),
+        tap_dir("$kohaclone/t/db_dependent"),
         tap_dir("$kohaclone/t/db_dependent/Labels"),
         "$kohaclone/xt/author/icondirectories.t",
         "$kohaclone/xt/author/podcorrectness.t",
@@ -399,7 +399,7 @@ sub tap_dir {
         next unless ($file =~ m/\.t$/);
         push @tests, "$directory/$file";
     }
-    return @tests;
+    return sort @tests;
 }
 
 sub run_cmd {
@@ -435,6 +435,12 @@ sub tap_task {
     my @tests = @_;
     my $logmsg = (' ' x $subtask) . $message;
 
+    if ($verbose) {
+        $harness_args->{'verbosity'} = 1;
+    } elsif ($quiet) {
+        $harness_args->{'verbosity'} = -1;
+    }
+    $harness_args->{'lib'} = [ $kohaclone ];
     $harness_args->{'merge'} = 1;
 
     print_log("$logmsg...");
