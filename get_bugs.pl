@@ -62,9 +62,9 @@ GetOptions(
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
 
-$version =~ m/(\d)\.\d(\d)\.\d(\d)\.\d+/g;
-my $simplified_version = "$1.$2.$3";
-my $expanded_version = "$1.0$2.0$3";
+$version =~ m/(\d)\.\d(\d)\.\d(\d)(\.\d+)?(-\w*)?/g;
+my $simplified_version = "$1.$2.$3$5";
+my $expanded_version = "$1.0$2.0$3$5";
 
 $version =~ m/(\d)\.\d(\d)\.\d(\d)\.\d+/g;
 $template    = "misc/release_notes/release_notes_$1_$2_x.tmpl" unless $template;
@@ -203,3 +203,5 @@ if ($commit_changes) {
     print "Commiting changes...\n";
     my @commit_results = qx|git commit -m "Release Notes for $version $time_stamp Z" misc/release_notes/$rnotes|;
 }
+
+exit 0;
