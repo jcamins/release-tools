@@ -47,6 +47,7 @@ my $want_help    = 0;
 my %skip;
 my $sign = 0;
 my $deploy = 0;
+my $tag = 0;
 my $clean = 0;
 my $autoversion = 0;
 my $database = 'koharel';
@@ -68,6 +69,7 @@ my $verbose;
 my $deployed = 'no';
 my $signed_tarball = 'no';
 my $signed_packages = 'no';
+my $tagged = 'no';
 my $cleaned = 'no';
 my $skipped = '';
 my $finished_tests = 'no';
@@ -81,6 +83,7 @@ my $options = GetOptions(
     'h|help'         => \$want_help,
     's|sign'         => \$sign,
     'd|deploy'       => \$deploy,
+    'g|tag'          => \$tag,
     'c|clean'        => \$clean,
     'a|autoversion'  => \$autoversion,
     'v|verbose'      => \$verbose,
@@ -325,6 +328,12 @@ unless ($skip{tgz} || $skip{install}) {
     }
 }
 
+if ($tag) {
+    my $tag_action = $sign ? '-s' : '-a';
+    shell_task("Tagging current commit", "git tag $tag_action -m 'Koha release $version' v$version");
+    $tagged = 'yes';
+}
+
 unless ($skip{rnotes}) {
     shell_task("Generating release notes", "$reltools/get_bugs.pl -r $rnotes_file -v $version --verbose");
 }
@@ -392,6 +401,7 @@ Signed packages:        $signed_packages
 Built tarball:          $built_tarball
 Tested tarball install: $tested_tarball_install
 Signed tarball:         $signed_tarball
+Tagged git repository:  $tagged
 Cleaned:                $cleaned
 Tarball file:           $tgz_file
 Package file:           $pkg_file
@@ -546,15 +556,19 @@ twice, also suppress the summary.
 
 =item B<--verbose, -v>
 
-Provide verbose diagnostic information.
+Provide verbose diagnostic information
 
 =item B<--sign, -s>
 
-Sign the tarball and package
+Sign the tarball and package and tag (if created)
 
 =item B<--deploy, -d>
 
-Deploy the package to the apt repository.
+Deploy the package to the apt repository
+
+=item B<--tag, -g>
+
+Tag the git repository
 
 =item B<--clean, -c>
 
