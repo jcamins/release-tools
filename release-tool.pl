@@ -212,11 +212,12 @@ unless ($skip{deb} || $skip{install}) {
     shell_task("Installing package...", "sudo dpkg -i $pkg_file 2>&1");
     run_cmd('sudo koha-remove pkgrel  2>&1');
 
-    open (KOHA_SITES, '>', '/tmp/koha-sites.conf');
-    print KOHA_SITES <<EOF;
+    open (my $koha_sites, '>', '/tmp/koha-sites.conf');
+    print $koha_sites <<EOF;
 OPACPORT=9003
 INTRAPORT=9004
 EOF
+    close $koha_sites;
     run_cmd('sudo mv /tmp/koha-sites.conf /etc/koha/koha-sites.conf');
 
     for my $flavour (@marcflavours) {
