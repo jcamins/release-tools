@@ -202,6 +202,7 @@ unless ($skip{tgz}) {
 
 unless ($skip{deb} || $skip{install}) {
     shell_task("Installing package...", "sudo dpkg -i $pkg_file 2>&1");
+    run_cmd('sudo koha-remove pkgrel  2>&1');
 
     open (KOHA_SITES, '>', '/tmp/koha-sites.conf');
     print KOHA_SITES <<EOF;
@@ -236,12 +237,12 @@ EOF
     }
 }
 
-if ($deploy && !$skip{deb}) {
-    if ($sign) {
-        shell_task("Signing packages", "debsign $build_result/*.changes");
-        $signed_packages = 'yes';
-    }
+if ($sign && !$skip{deb}) {
+    shell_task("Signing packages", "debsign $build_result/*.changes");
+    $signed_packages = 'yes';
+}
 
+if ($deploy && !$skip{deb}) {
     shell_task("Importing packages to apt repo", "dput koha $build_result/*.changes");
     $deployed = 'yes';
 }
@@ -291,6 +292,7 @@ unless ($skip{tgz} || $skip{install}) {
         run_cmd("sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' $build_result/fresh/etc/koha-httpd.conf");
      
         unless ($skip{webinstall}) {
+            clean_tgz_webinstall();
             print_log(" Creating database for $flavour...");
             $drh->func('createdb', $database, 'localhost', $db_user, $db_pass, 'admin') or fail("Creating database for $flavour");
 
@@ -309,6 +311,7 @@ unless ($skip{tgz} || $skip{install}) {
             tap_task("Running webinstaller for $flavour", 1, $harness_args, "$reltools/install-fresh.pl");
 
             clean_tgz_webinstall();
+            clean_tgz();
             push @tested_tarball_installs, $flavour;
         } else {
             clean_tgz();
@@ -319,6 +322,7 @@ unless ($skip{tgz} || $skip{install}) {
 
 if ($clean) {
     clean_tgz_webinstall();
+    clean_tgz();
     remove_tree($build_result);
     $cleaned = 'yes';
 }
@@ -330,8 +334,7 @@ sub clean_tgz_webinstall {
     $drh->func('dropdb', $database, 'localhost', $db_user, $db_pass, 'admin');
     run_cmd("sudo a2dissite release-fresh 2>&1");
     run_cmd("sudo apache2ctl restart 2>&1");
-    run_cme("sudo rm /etc/apache2/sites-available/release-fresh 2>&1");
-    clean_tgz();
+    run_cmd("sudo rm /etc/apache2/sites-available/release-fresh 2>&1");
 }
 
 sub clean_tgz {
