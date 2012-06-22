@@ -67,14 +67,16 @@ my $simplified_version = "$1.$2.$3";
 my $expanded_version = "$1.0$2.0$3";
 
 $version =~ m/(\d)\.\d(\d)\.\d(\d)\.\d+/g;
-$template    = "release_notes_$1_$2_x.tmpl";
-$rnotes      = "release_notes_$1_$2_$3.txt";
+$template    = "misc/release_notes/release_notes_$1_$2_x.tmpl" unless $template;
+$rnotes      = "misc/release_notes/release_notes_$1_$2_$3.txt" unless $rnotes;
 
 print "Using template: $template and release notes file: $rnotes\n\n";
 
 my $git_add = 1 unless -e "misc/release_notes/$rnotes";
 
-die "-t missing: a tag is required" if !$tag;
+$tag = `git describe --abbrev=0` unless $tag;
+chomp $tag;
+
 die "Useful information goes here..." if $help;
 
 my @bug_list = ();
@@ -138,11 +140,11 @@ foreach my $queryline (@syspref_queries) {
 }
 $sysprefs = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n";
 
-open (RNOTESTMPL, "< misc/release_notes/$template");
+open (RNOTESTMPL, "<$template");
 my @release_notes = <RNOTESTMPL>;
 close RNOTESTMPL;
 
-open (RNOTES, "> misc/release_notes/$rnotes");
+open (RNOTES, ">$rnotes");
 
 foreach my $line (@release_notes) {
     if ($line =~ m/<<([a-z|_]+)>>(.*?)/g) { # why?
