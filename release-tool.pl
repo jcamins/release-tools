@@ -331,12 +331,12 @@ unless ($skip{tgz} || $skip{install}) {
 
 if ($tag) {
     my $tag_action = $sign ? '-s' : '-a';
-    shell_task("Tagging current commit", "git tag $tag_action -m 'Koha release $version' v$version");
+    shell_task("Tagging current commit", "git tag $tag_action -m 'Koha release $version' v$version 2>&1");
     $tagged = 'yes';
 }
 
 unless ($skip{rnotes}) {
-    shell_task("Generating release notes", "$reltools/get_bugs.pl -r $rnotes_file -v $version --verbose");
+    shell_task("Generating release notes", "$reltools/get_bugs.pl -r $rnotes_file -v $version --verbose 2>&1");
 }
 
 if ($clean) {
