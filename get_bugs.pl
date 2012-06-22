@@ -62,11 +62,12 @@ GetOptions(
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
 
-$version =~ m/(\d)\.\d(\d)\.\d(\d)(\.\d+)?(-\w*)?/g;
-my $simplified_version = "$1.$2.$3$5";
-my $expanded_version = "$1.0$2.0$3$5";
+die "No usable version" unless $version =~ m/(\d)\.\d(\d)\.\d(\d)(\.\d+)?(-\w*)?/g;
+my $simplified_version = "$1.$2.$3";
+$simplified_version .= "$5" if ($5);
+my $expanded_version = "$1.0$2.0$3";
+$expanded_version .= "$5" if ($5);
 
-$version =~ m/(\d)\.\d(\d)\.\d(\d)\.\d+/g;
 $template    = "misc/release_notes/release_notes_$1_$2_x.tmpl" unless $template;
 $rnotes      = "misc/release_notes/release_notes_$1_$2_$3.txt" unless $rnotes;
 
@@ -163,10 +164,11 @@ foreach my $line (@release_notes) {
         if ($key_word eq 'contributors') {
             # Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
             # WARNING!!! Obfuscation ahead!!!
+            my @contribs;
             my @contributor_list =
                 map { $_->[1] }
                 sort { $a->[0] cmp $b->[0] }
-                map { [(split /\s+/, $_)[scalar(split /\s+/, $_)-1], $_] }
+                map { [(split /\s+/, $_)[scalar(@contribs = split /\s+/, $_)-1], $_] }
                 qx(git log --pretty=short $tag..$HEAD | git shortlog -s | sort -k3 -);
 
             my $contributors = join "", @contributor_list;
