@@ -56,6 +56,7 @@ my $build_result = '';
 my $package;
 my $pkg_file = '';
 my $tgz_file = '';
+my $rnotes_file = '';
 my $kohaclone = '';
 my $branch;
 my $version;
@@ -92,12 +93,14 @@ my $options = GetOptions(
     'skip-normarc'   => \$skip{normarc},
     'skip-webinstall' => \$skip{webinstall},
     'skip-pbuilder'  => \$skip{pbuilder},
+    'skip-rnotes'    => \$skip{rnotes},
     'database=s'     => \$database,
     'user=s'         => \$db_user,
     'password=s'     => \$db_pass,
     'k|kohaclone=s'  => \$kohaclone,
     'b|build-result=s' => \$build_result,
     't|tarball=s'    => \$tgz_file,
+    'r|rnotes=s'     => \$rnotes_file,
     'branch=s'       => \$branch,
     'version=s'      => \$version,
     'maintainer-name=s' => \$maintainername,
@@ -141,7 +144,9 @@ while (my $file = readdir(DIR)) {
 $ENV{TEST_QA} = 1;
 
 $tgz_file = "$build_result/koha-$branch-$version.tar.gz" unless $tgz_file;
+$rnotes_file = "$build_result/release_notes.txt" unless $rnotes_file;
 unlink $tgz_file;
+unlink $rnotes_file;
 unlink "$build_result/errors.log";
 
 print_log(colored("Starting release test at " . strftime('%D %T', localtime($starttime)), 'blue'));
@@ -320,6 +325,10 @@ unless ($skip{tgz} || $skip{install}) {
     }
 }
 
+unless ($skip{rnotes}) {
+    shell_task("Generating release notes", "$reltools/get_bugs.pl -r $rnotes_file -v $version --verbose");
+}
+
 if ($clean) {
     clean_tgz_webinstall();
     clean_tgz();
@@ -362,6 +371,7 @@ sub summary {
     $skipped =~ s/^, //;
     $pkg_file = 'none' unless (-s $pkg_file && not $skip{deb});
     $tgz_file = 'none' unless (-s $tgz_file && not $skip{tgz});
+    $rnotes_file = 'none' unless (-s $rnotes_file && not $skip{rnotes});
     return if $quiet > 1;
     print <<_SUMMARY_;
 
@@ -385,6 +395,7 @@ Signed tarball:         $signed_tarball
 Cleaned:                $cleaned
 Tarball file:           $tgz_file
 Package file:           $pkg_file
+Release notes:          $rnotes_file
 _SUMMARY_
 }
 
@@ -581,6 +592,9 @@ Running the webinstaller
 
 =item B<pbuilder>
 Updating the pbuilder environment
+
+=item B<rnotes>
+Generating release notes
 
 =back
 
