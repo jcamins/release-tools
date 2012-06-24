@@ -16,6 +16,24 @@
 # Suite 330, Boston, MA  02111-1307 USA
 #
 
+=head1 NAME
+
+release-tool.pl
+
+=head1 SYNOPSIS
+
+  release-tool.pl
+  release-tool.pl --version 3.06.05
+
+=head1 DESCRIPTION
+
+This script takes care of most of the Koha release process, as it is
+done by Jared Camins-Esakov and C & P Bibliography Services. This may
+not perfectly meet the needs of other Release Maintainers and/or
+organizations.
+
+=cut
+
 use strict;
 use warnings;
 use Getopt::Long;
@@ -45,29 +63,6 @@ $|                          = 1;
 $Term::ANSIColor::AUTORESET = 1;
 
 my %defaults = (
-
-    # general run configuration options
-    quiet   => 0,
-    verbose => 0,
-
-    # behavior options
-    autoversion => 0,
-
-    # actions
-    clean   => 0,
-    deploy  => 0,
-    release => 0,
-    sign    => 0,
-    tag     => 0,
-
-    # skips
-    # file locations
-    'build-result' => '',
-    package        => '',
-    tarball        => '',
-    rnotes         => '',
-    kohaclone      => '',
-
     # database settings
     database => $ENV{KOHA_DATABASE} || 'koharel',
     user     => $ENV{KOHA_USER}     || 'koharel',
@@ -98,27 +93,225 @@ my %cmdline;
 my $config = Config::Simple->new();
 
 my $options = GetOptions(
-    \%cmdline,            'config=s',
-    'quiet|q+',           'verbose|v+',
-    'help|h',             'sign|s',
-    'deploy|d',           'tag|g',
-    'clean|c',            'autoversion|a',
-    'release',            'skip-tests',
+    \%cmdline,
+=head2 General options
+
+=over 8
+
+=item B<--help>
+
+Prints this help
+
+=item B<--quiet, -q>
+
+Don't display any status information while running. When specified
+twice, also suppress the summary.
+
+=item B<--verbose, -v>
+
+Provide verbose diagnostic information
+
+=item B<--config>
+
+Read configuration settings from the specified file. Options set on the
+command line will override options in the configuration file.
+
+=back
+=cut
+    'help|h',             'quiet|q+',
+    'verbose|v+',         'config=s',
+=head2 Action control options
+
+=over 8
+
+=item B<--clean, -c>
+
+Delete all the files created in the course of the test
+
+=item B<--deploy, -d>
+
+Deploy the package to the apt repository
+
+=item B<--release>
+
+Equivalent to I<--sign --deploy --tag --tarball=koha-${VERSION}.tar.gz>
+
+=item B<--sign, -s>
+
+Sign the tarball and package and tag (if created)
+
+=item B<--tag, -g>
+
+Tag the git repository
+=cut
+    'clean|c',            'deploy|d',
+    'release',
+    'sign|s',           'tag|g',
+=item B<--skip-THING>
+
+Most actions are performed automatically, unless the user requests that they
+be skipped. Skip THING. Currently the following can be skipped:
+
+=over 4
+
+=item B<tests>
+Unit tests
+
+=item B<deb>
+Debian package-related tasks
+
+=item B<tgz>
+Tarball-related tasks
+
+=item B<install>
+Installation-related tasks
+
+=item B<marc21>
+MARC21 instance installation
+
+=item B<unimarc>
+UNIMARC instance installation
+
+=item B<normarc>
+NORMARC instance installation
+
+=item B<webinstall>
+Running the webinstaller
+
+=item B<pbuilder>
+Updating the pbuilder environment
+
+=item B<rnotes>
+Generating release notes
+
+=back
+
+=back
+=cut
+    'skip-tests',
     'skip-deb',           'skip-tgz',
     'skip-install',       'skip-marc21',
     'skip-unimarc',       'skip-normarc',
     'skip-webinstall',    'skip-pbuilder',
-    'skip-rnotes',        'database=s',
+    'skip-rnotes',       
+=head2 Source description options
+
+=over 8
+
+=item B<--kohaclone, -k>
+
+Kohaclone directory. Defaults to the current working directory
+
+=item B<--branch>
+
+The name of the branch or distribution in use. Defaults to current git branch
+
+=item B<--version>
+
+The version of Koha that is being created. Defaults to the version listed in
+kohaversion.pl
+
+=item B<--autoversion, -a>
+
+Automatically include the git commit id and timestamp in the package version
+
+=back
+=cut
+    'version=s','autoversion|a',
+    'kohaclone|k=s',
+    'branch=s',           
+=head2 Execution options
+
+=over 8
+
+=item B<--database>
+
+Name of the MySQL database to use for tarball installs. Defaults to koharel
+
+=item B<--user>
+
+Name of the MySQL user for tarball installs. Defaults to koharel
+
+=item B<--password>
+
+Name of the MySQL password for tarball installs. Defaults to koharel
+
+=item B<--maintainer-name>
+
+The name of the maintainer. Defaults to global git config user.name
+
+=item B<--maintainer-email>
+
+The e-mail address of the maintainer. Defaults to the value of git config
+--global user.email
+
+=item B<--use-dist-rnotes>
+
+Use the release notes included in the distribution. I<--rnotes> moust be
+specified if this option is used.
+
+=back
+=cut
+    'database=s',
     'user=s',             'password=s',
-    'kohaclone|k=s',      'build-result|b=s',
-    'tarball|t=s',        'rnotes|r=s',
-    'use-dist-rnotes',    'repository=s',
-    'branch=s',           'version=s',
+    'use-dist-rnotes',
     'maintainer-name=s',  'maintainer-email=s',
+=head2 Output options
+
+=over 8
+
+=item B<--build-result, -b>
+
+Directory to put the output into. Defaults to ~/releases/[branch]/[version]
+
+=item B<--errorlog>
+
+File to store error information in. Defaults to [build-result]/errors.log
+
+=item B<--rnotes, -r>
+
+The name of the release notes file to generate or use (see I<--use-dist-rnotes>).
+Defaults to [build-result]/release_notes.txt
+
+=item B<--tarball, -t>
+
+The name of the tarball file to generate. Defaults to
+[build-result]/koha-[branch]-[version].tar.gz
+
+=back
+=cut
+     'build-result|b=s', 'errorlog=s',
+    'tarball|t=s',        'rnotes|r=s',
+=head2 Announcement options
+
+=over 8
+
+=item B<--email-recipients>
+
+Who to generate the e-mail announcement for. Defaults to 
+"koha@lists.katipo.co.nz, koha-devel@lists.koha-community.org"
+
+=item B<--email-subject>
+
+Subject of the generated e-mail announcement. Defaults to "New Koha version"
+
+=item B<--email-file>
+
+File to store the generated e-mail announcement in. Defaults to
+[build-result]/announcement.eml
+
+=item B<--email-template>
+
+Template file for the release announcement e-mail. Defaults to
+"announcement.eml.tt" in the same directory as this script
+
+=back
+=cut
+    'email-file=s', 
     'email-recipients=s', 'email-subject=s',
-    'email-template=s',   'email-file=s',
-    'errorlog=s'
+    'email-template=s',   
 );
+
 
 binmode( STDOUT, ":utf8" );
 
@@ -791,144 +984,6 @@ sub interrupt {
     summary();
     die "**** YOU INTERRUPTED THE SCRIPT ****\n";
 }
-
-=head1 NAME
-
-release-tool.pl
-
-=head1 SYNOPSIS
-
-  release-tool.pl
-  release-tool.pl --version 3.06.05
-
-=head1 DESCRIPTION
-
-This script takes care of most of the Koha release process, as it is
-done by Jared Camins-Esakov and C & P Bibliography Services. This may
-not perfectly meet the needs of other Release Maintainers and/or
-organizations.
-
-=over 8
-
-=item B<--help>
-
-Prints this help
-
-=item B<--quiet, -q>
-
-Don't display any status information while running. When specified
-twice, also suppress the summary.
-
-=item B<--verbose, -v>
-
-Provide verbose diagnostic information
-
-=item B<--sign, -s>
-
-Sign the tarball and package and tag (if created)
-
-=item B<--deploy, -d>
-
-Deploy the package to the apt repository
-
-=item B<--tag, -g>
-
-Tag the git repository
-
-=item B<--clean, -c>
-
-Delete all the files created in the course of the test
-
-=item B<--release>
-
-Equivalent to I<--sign --deploy --tag --tarball=koha-${VERSION}.tar.gz>
-
-=item B<--skip-THING>
-
-Skip THING. Currently the following can be skipped:
-
-=over 4
-
-=item B<tests>
-Unit tests
-
-=item B<deb>
-Debian package-related tasks
-
-=item B<tgz>
-Tarball-related tasks
-
-=item B<install>
-Installation-related tasks
-
-=item B<marc21>
-MARC21 instance installation
-
-=item B<unimarc>
-UNIMARC instance installation
-
-=item B<normarc>
-NORMARC instance installation
-
-=item B<webinstall>
-Running the webinstaller
-
-=item B<pbuilder>
-Updating the pbuilder environment
-
-=item B<rnotes>
-Generating release notes
-
-=back
-
-
-=item B<--database>
-
-Name of the MySQL database to use for tarball installs. Defaults to koharel
-
-=item B<--user>
-
-Name of the MySQL user for tarball installs. Defaults to koharel
-
-=item B<--password>
-
-Name of the MySQL password for tarball installs. Defaults to koharel
-
-=item B<--kohaclone, -k>
-
-Kohaclone directory. Defaults to the current working directory
-
-=item B<--build-result, -b>
-
-Result to put the output into. Defaults to ~/releases/[branch]/[version]
-
-=item B<--tarball, -t>
-
-The name of the tarball file to generate
-
-=item B<--branch>
-
-The name of the branch or distribution in use. Defaults to current git branch
-
-=item B<--version>
-
-The version of Koha that is being created. Defaults to the version listed in
-kohaversion.pl
-
-=item B<--autoversion, -a>
-
-Automatically include the git commit id and timestamp in the package version
-
-=item B<--maintainer-name>
-
-The name of the maintainer. Defaults to global git config user.name
-
-=item B<--maintainer-email>
-
-The e-mail address of the maintainer. Defaults to the value of git config
---global user.email
-
-=back
 
 =head1 DPUT CONFIGURATION
 
