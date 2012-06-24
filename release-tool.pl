@@ -63,6 +63,38 @@ $|                          = 1;
 $Term::ANSIColor::AUTORESET = 1;
 
 my %defaults = (
+    autoversion          => 0,
+    branch               => '',
+    'build-result'       => '',
+    clean                => 0,
+    deploy               => 0,
+    'email-file'         => '',
+    errorlog             => '',
+    kohaclone            => '',
+    'maintainer-email'   => '',
+    'maintainer-name'    => '',
+    package              => '',
+    'post-deploy-script' => '',
+    quiet                => 0,
+    rnotes               => '',
+    sign                 => 0,
+    'skip-deb'           => 0,
+    'skip-install'       => 0,
+    'skip-marc21'        => 0,
+    'skip-normarc'       => 0,
+    'skip-pbuilder'      => 0,
+    'skip-rnotes'        => 0,
+    'skip-tests'         => 0,
+    'skip-tgz'           => 0,
+    'skip-unimarc'       => 0,
+    'skip-webinstall'    => 0,
+    tag                  => 0,
+    tarball              => '',
+    'tgz-install-dir'    => '',
+    'use-dist-rnotes'    => 0,
+    verbose              => 0,
+    version              => '',
+
     # database settings
     database => $ENV{KOHA_DATABASE} || 'koharel',
     user     => $ENV{KOHA_USER}     || 'koharel',
@@ -92,8 +124,6 @@ my @tested_package_installs;
 my %cmdline;
 my $config = Config::Simple->new();
 
-my $options = GetOptions(
-    \%cmdline,
 =head2 General options
 
 =over 8
@@ -117,9 +147,7 @@ Read configuration settings from the specified file. Options set on the
 command line will override options in the configuration file.
 
 =back
-=cut
-    'help|h',             'quiet|q+',
-    'verbose|v+',         'config=s',
+
 =head2 Action control options
 
 =over 8
@@ -143,10 +171,7 @@ Sign the tarball and package and tag (if created)
 =item B<--tag, -g>
 
 Tag the git repository
-=cut
-    'clean|c',            'deploy|d',
-    'release',
-    'sign|s',           'tag|g',
+
 =item B<--skip-THING>
 
 Most actions are performed automatically, unless the user requests that they
@@ -188,12 +213,7 @@ Generating release notes
 
 =back
 =cut
-    'skip-tests',
-    'skip-deb',           'skip-tgz',
-    'skip-install',       'skip-marc21',
-    'skip-unimarc',       'skip-normarc',
-    'skip-webinstall',    'skip-pbuilder',
-    'skip-rnotes',       
+
 =head2 Source description options
 
 =over 8
@@ -216,10 +236,7 @@ kohaversion.pl
 Automatically include the git commit id and timestamp in the package version
 
 =back
-=cut
-    'version=s','autoversion|a',
-    'kohaclone|k=s',
-    'branch=s',           
+
 =head2 Execution options
 
 =over 8
@@ -250,12 +267,12 @@ The e-mail address of the maintainer. Defaults to the value of git config
 Use the release notes included in the distribution. I<--rnotes> moust be
 specified if this option is used.
 
+=item B<--post-deploy-script>
+
+Run the specified script at the end of the deploy phase.
+
 =back
-=cut
-    'database=s',
-    'user=s',             'password=s',
-    'use-dist-rnotes',
-    'maintainer-name=s',  'maintainer-email=s',
+
 =head2 Output options
 
 =over 8
@@ -279,9 +296,7 @@ The name of the tarball file to generate. Defaults to
 [build-result]/koha-[branch]-[version].tar.gz
 
 =back
-=cut
-     'build-result|b=s', 'errorlog=s',
-    'tarball|t=s',        'rnotes|r=s',
+
 =head2 Announcement options
 
 =over 8
@@ -307,11 +322,46 @@ Template file for the release announcement e-mail. Defaults to
 
 =back
 =cut
-    'email-file=s', 
-    'email-recipients=s', 'email-subject=s',
-    'email-template=s',   
-);
 
+my $options = GetOptions(
+    \%cmdline,
+
+    # General options
+    'help|h',     'quiet|q+',
+    'verbose|v+', 'config=s',
+
+    # Action control options
+    'clean|c', 'deploy|d',
+    'release',
+    'sign|s', 'tag|g',
+    'skip-tests',
+    'skip-deb',        'skip-tgz',
+    'skip-install',    'skip-marc21',
+    'skip-unimarc',    'skip-normarc',
+    'skip-webinstall', 'skip-pbuilder',
+    'skip-rnotes',
+
+    # Source description options
+    'version=s', 'autoversion|a',
+    'kohaclone|k=s',
+    'branch=s',
+
+    # Execution options
+    'database=s',
+    'user=s', 'password=s',
+    'use-dist-rnotes',
+    'maintainer-name=s', 'maintainer-email=s',
+    'post-deploy-script',
+
+    # Output options
+    'build-result|b=s', 'errorlog=s',
+    'tarball|t=s',      'rnotes|r=s',
+
+    # Announcement options
+    'email-file=s',
+    'email-recipients=s', 'email-subject=s',
+    'email-template=s',
+);
 
 binmode( STDOUT, ":utf8" );
 
@@ -683,6 +733,11 @@ if ( $config->param('tag') ) {
 }
 
 generate_email();
+
+if ( $config->param('deploy') && $config->param('post-deploy-script') ) {
+    shell_task( "Running post-deploy script",
+        $config->param('post-deploy-script') );
+}
 
 if ( $config->param('clean') ) {
     clean_tgz_webinstall();
