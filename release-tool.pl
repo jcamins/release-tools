@@ -44,7 +44,7 @@ $Term::ANSIColor::AUTORESET = 1;
 # command-line parameters
 my $quiet           = 0;
 my $want_help       = 0;
-my $full            = 0;
+my $release         = 0;
 my $deploy          = 0;
 my $tag             = 0;
 my $clean           = 0;
@@ -76,6 +76,7 @@ my $output;
 my $maintainername;
 my $maintaineremail;
 my $drh;
+my $repo;
 my @tested_tarball_installs;
 my @tested_package_installs;
 
@@ -88,7 +89,7 @@ my $options = GetOptions(
     'c|clean'            => \$clean,
     'a|autoversion'      => \$autoversion,
     'v|verbose+'         => \$verbose,
-    'full'               => \$full,
+    'release'            => \$release,
     'skip-tests'         => \$skip{tests},
     'skip-deb'           => \$skip{deb},
     'skip-tgz'           => \$skip{tgz},
@@ -106,6 +107,7 @@ my $options = GetOptions(
     'b|build-result=s'   => \$build_result,
     't|tarball=s'        => \$tgz_file,
     'r|rnotes=s'         => \$rnotes_file,
+    'repository=s'       => \$repo,
     'branch=s'           => \$branch,
     'version=s'          => \$version,
     'maintainer-name=s'  => \$maintainername,
@@ -118,10 +120,11 @@ if ( $want_help ) {
     usage();
 }
 
-if ( $full ) {
-    $sign = 1;
-    $deploy = 1;
-    $tag = 1;
+if ( $release ) {
+    $sign     = 1;
+    $deploy   = 1;
+    $tag      = 1;
+    $tgz_file = "koha-$version.tar.gz";
 }
 
 $database = 'koharel' unless ($database);
@@ -129,6 +132,8 @@ $db_user  = 'koharel' unless ($db_user);
 $db_pass  = 'koharel' unless ($db_pass);
 
 my $starttime = time();
+
+chdir $repo if ($repo && -d $repo);
 
 my $reltools = File::Spec->rel2abs(dirname(__FILE__));
 
@@ -158,7 +163,14 @@ while (my $file = readdir(DIR)) {
 
 $ENV{TEST_QA} = 1;
 
-$tgz_file = "$build_result/koha-$branch-$version.tar.gz" unless $tgz_file;
+if ($tgz_file =~ m#/#) {
+    $tgz_file = '' unless (-d dirname($tgz_file));
+} elsif ($tgz_file) {
+    $tgz_file = "$build_result/$tgz_file";
+}
+
+$tgz_file = "$build_result/koha-$branch-$version.tar.gz" unless ($tgz_file);
+
 $rnotes_file = "$build_result/release_notes.txt" unless $rnotes_file;
 unlink $tgz_file;
 unlink $rnotes_file;
@@ -218,6 +230,10 @@ unless ($skip{tgz}) {
         shell_task("Signing md5sum", "gpg --clearsign $tgz_file.MD5", 1);
         $signed_tarball = 'yes';
     }
+}
+
+unless ($skip{rnotes}) {
+    shell_task("Generating release notes", "$reltools/get_bugs.pl -r $rnotes_file -v $version --verbose 2>&1");
 }
 
 unless ($skip{deb} || $skip{install}) {
@@ -345,10 +361,6 @@ if ($tag) {
     my $tag_action = $sign ? '-s' : '-a';
     shell_task("Tagging current commit", "git tag $tag_action -m 'Koha release $version' v$version 2>&1");
     $tagged = 'yes';
-}
-
-unless ($skip{rnotes}) {
-    shell_task("Generating release notes", "$reltools/get_bugs.pl -r $rnotes_file -v $version --verbose 2>&1");
 }
 
 if ($clean) {
@@ -595,6 +607,10 @@ Tag the git repository
 
 Delete all the files created in the course of the test
 
+=item B<--release>
+
+Equivalent to I<--sign --deploy --tag --tarball=koha-${VERSION}.tar.gz>
+
 =item B<--skip-THING>
 
 Skip THING. Currently the following can be skipped:
@@ -695,7 +711,7 @@ set up. Once you have set up your repo, put the following in your  ~/.dput.cf:
 
 =head1 SEE ALSO
 
-dch(1), dput(1), pbuilder(8), reprepro(1)
+L<dch(1)>, L<dput(1)>, L<pbuilder(8)>, L<reprepro(1)>
 
 =head1 AUTHOR
 
