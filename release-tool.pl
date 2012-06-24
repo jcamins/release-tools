@@ -42,73 +42,73 @@ $| = 1;
 $Term::ANSIColor::AUTORESET = 1;
 
 # command-line parameters
-my $quiet        = 0;
-my $want_help    = 0;
-my $full = 0;
+my $quiet           = 0;
+my $want_help       = 0;
+my $full            = 0;
+my $deploy          = 0;
+my $tag             = 0;
+my $clean           = 0;
+my $autoversion     = 0;
+my $database        = $ENV{KOHA_DATABASE};
+my $db_user         = $ENV{KOHA_USER};
+my $db_pass         = $ENV{KOHA_PASS};
+my $build_result    = '';
+my $pkg_file        = '';
+my $tgz_file        = '';
+my $rnotes_file     = '';
+my $kohaclone       = '';
+my $verbose         = 0;
+my $deployed        = 'no';
+my $signed_tarball  = 'no';
+my $signed_packages = 'no';
+my $tagged          = 'no';
+my $cleaned         = 'no';
+my $skipped         = '';
+my $finished_tests  = 'no';
+my $built_tarball   = 'no';
+my $built_packages  = 'no';
+my $sign            = 0;
 my %skip;
-my $sign = 0;
-my $deploy = 0;
-my $tag = 0;
-my $clean = 0;
-my $autoversion = 0;
-my $database = 'koharel';
-my $db_user = 'koharel';
-my $db_pass = 'koharel';
-my $build_result = '';
 my $package;
-my $pkg_file = '';
-my $tgz_file = '';
-my $rnotes_file = '';
-my $kohaclone = '';
 my $branch;
 my $version;
 my $output;
 my $maintainername;
 my $maintaineremail;
 my $drh;
-my $verbose = 0;
-my $deployed = 'no';
-my $signed_tarball = 'no';
-my $signed_packages = 'no';
-my $tagged = 'no';
-my $cleaned = 'no';
-my $skipped = '';
-my $finished_tests = 'no';
-my $built_tarball = 'no';
-my $built_packages = 'no';
 my @tested_tarball_installs;
 my @tested_package_installs;
 
 my $options = GetOptions(
-    'q|quiet+'        => \$quiet,
-    'h|help'         => \$want_help,
-    's|sign'         => \$sign,
-    'd|deploy'       => \$deploy,
-    'g|tag'          => \$tag,
-    'c|clean'        => \$clean,
-    'a|autoversion'  => \$autoversion,
-    'v|verbose+'      => \$verbose,
-    'full'           => \$full,
-    'skip-tests'     => \$skip{tests},
-    'skip-deb'       => \$skip{deb},
-    'skip-tgz'       => \$skip{tgz},
-    'skip-install'   => \$skip{install},
-    'skip-marc21'    => \$skip{marc21},
-    'skip-unimarc'   => \$skip{unimarc},
-    'skip-normarc'   => \$skip{normarc},
-    'skip-webinstall' => \$skip{webinstall},
-    'skip-pbuilder'  => \$skip{pbuilder},
-    'skip-rnotes'    => \$skip{rnotes},
-    'database=s'     => \$database,
-    'user=s'         => \$db_user,
-    'password=s'     => \$db_pass,
-    'k|kohaclone=s'  => \$kohaclone,
-    'b|build-result=s' => \$build_result,
-    't|tarball=s'    => \$tgz_file,
-    'r|rnotes=s'     => \$rnotes_file,
-    'branch=s'       => \$branch,
-    'version=s'      => \$version,
-    'maintainer-name=s' => \$maintainername,
+    'q|quiet+'           => \$quiet,
+    'h|help'             => \$want_help,
+    's|sign'             => \$sign,
+    'd|deploy'           => \$deploy,
+    'g|tag'              => \$tag,
+    'c|clean'            => \$clean,
+    'a|autoversion'      => \$autoversion,
+    'v|verbose+'         => \$verbose,
+    'full'               => \$full,
+    'skip-tests'         => \$skip{tests},
+    'skip-deb'           => \$skip{deb},
+    'skip-tgz'           => \$skip{tgz},
+    'skip-install'       => \$skip{install},
+    'skip-marc21'        => \$skip{marc21},
+    'skip-unimarc'       => \$skip{unimarc},
+    'skip-normarc'       => \$skip{normarc},
+    'skip-webinstall'    => \$skip{webinstall},
+    'skip-pbuilder'      => \$skip{pbuilder},
+    'skip-rnotes'        => \$skip{rnotes},
+    'database=s'         => \$database,
+    'user=s'             => \$db_user,
+    'password=s'         => \$db_pass,
+    'k|kohaclone=s'      => \$kohaclone,
+    'b|build-result=s'   => \$build_result,
+    't|tarball=s'        => \$tgz_file,
+    'r|rnotes=s'         => \$rnotes_file,
+    'branch=s'           => \$branch,
+    'version=s'          => \$version,
+    'maintainer-name=s'  => \$maintainername,
     'maintainer-email=s' => \$maintaineremail,
 );
 
@@ -123,6 +123,10 @@ if ( $full ) {
     $deploy = 1;
     $tag = 1;
 }
+
+$database = 'koharel' unless ($database);
+$db_user  = 'koharel' unless ($db_user);
+$db_pass  = 'koharel' unless ($db_pass);
 
 my $starttime = time();
 
