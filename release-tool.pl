@@ -32,7 +32,7 @@ use TAP::Harness;
 use DBI;
 use MIME::Lite;
 use Template;
-use Config;
+use Config::Simple;
 
 $SIG{INT} = \&interrupt;
 
@@ -44,7 +44,7 @@ sub usage {
 $|                          = 1;
 $Term::ANSIColor::AUTORESET = 1;
 
-my %config = (
+my %defaults = (
 
     # general run configuration options
     quiet   => 0,
@@ -77,8 +77,8 @@ my %config = (
     'email-template' => 'announcement.eml.tt',
     'email-recipients' =>
       'koha@lists.katipo.co.nz, koha-devel@lists.koha-community.org',
-    'email-subject' => "New Koha version",
-    'website-file'  => 'announcement.html.tt',
+    'email-subject'    => "New Koha version",
+    'website-template' => 'announcement.html.tt',
 );
 
 my $deployed        = 'no';
@@ -92,10 +92,10 @@ my $built_tarball   = 'no';
 my $built_packages  = 'no';
 my $output;
 my $drh;
-my $repo;
 my @tested_tarball_installs;
 my @tested_package_installs;
 my %cmdline;
+my $config = Config::Simple->new();
 
 my $options = GetOptions(
     \%cmdline,            'config=s',
@@ -117,6 +117,7 @@ my $options = GetOptions(
     'maintainer-name=s',  'maintainer-email=s',
     'email-recipients=s', 'email-subject=s',
     'email-template=s',   'email-file=s',
+    'errorlog=s'
 );
 
 binmode( STDOUT, ":utf8" );
@@ -125,79 +126,98 @@ if ( $cmdline{help} ) {
     usage();
 }
 
-if ( defined( $cmdline{config} ) && -f $cmdline{config} ) {
-    Config::Simple->import_from( $cmdline{config}, %config );
+if ( defined( $cmdline{config} ) && -f File::Spec->rel2abs( $cmdline{config} ) )
+{
+    $config->read( $cmdline{config} );
+}
+foreach my $key ( keys %defaults ) {
+    $config->param( $key, $defaults{$key} );
 }
 foreach my $key ( keys %cmdline ) {
-    $config{$key} = $cmdline{$key};
+    $config->param( $key, $cmdline{$key} );
 }
 
 if ( $cmdline{release} ) {
-    $config{sign}    = 1;
-    $config{deploy}  = 1;
-    $config{tag}     = 1;
-    $config{tarball} = "koha-$config{'version'}.tar.gz";
+    $config->param( 'sign',   1 );
+    $config->param( 'deploy', 1 );
+    $config->param( 'tag',    1 );
+    $config->param( 'tarball',
+        'koha-' . $config->param('version') . '.tar.gz' );
 }
 
 my $starttime = time();
 
-chdir $repo if ( $repo && -d $repo );
+chdir $config->param('kohaclone')
+  if ( $config->param('kohaclone') && -d $config->param('kohaclone') );
 
 my $reltools = File::Spec->rel2abs( dirname(__FILE__) );
 
-$config{'kohaclone'} = File::Spec->rel2abs( File::Spec->curdir() )
-  unless ( -d $config{'kohaclone'} );
+$config->param( 'kohaclone', File::Spec->rel2abs( File::Spec->curdir() ) )
+  unless ( $config->param('kohaclone') && -d $config->param('kohaclone') );
 
 my @marcflavours;
-push @marcflavours, 'MARC21'  unless $config{'skip-marc21'};
-push @marcflavours, 'UNIMARC' unless $config{'skip-unimarc'};
-push @marcflavours, 'NORMARC' unless $config{'skip-normarc'};
+push @marcflavours, 'MARC21'  unless $config->param('skip-marc21');
+push @marcflavours, 'UNIMARC' unless $config->param('skip-unimarc');
+push @marcflavours, 'NORMARC' unless $config->param('skip-normarc');
 
-chomp( $config{'branch'} =
-      `git branch | grep '*' | sed -e 's/^* //' -e 's#/#-#'` )
-  unless $config{'branch'};
-chomp( $config{'version'} =
-      `grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/';//"` )
-  unless $config{'version'};
-chomp( $config{'maintainer-name'} = `git config --global --get user.name` )
-  unless $config{'maintainer-name'};
-chomp( $config{'maintainer-email'} = `git config --global --get user.email` )
-  unless $config{'maintainer-email'};
+set_default( 'branch', `git branch | grep '*' | sed -e 's/^* //' -e 's#/#-#'` );
 
-$config{'build-result'} =
-  "$ENV{HOME}/releases/$config{'branch'}/$config{'version'}"
-  unless ( $config{'build-result'} );
-make_path( $config{'build-result'} );
+set_default( 'version',
+    `grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/';//"` );
 
-opendir( DIR, $config{'build-result'} );
+set_default( 'maintainer-name', `git config --global --get user.name` );
+
+set_default( 'maintainer-email', `git config --global --get user.email` );
+
+set_default( 'build-result',
+        "$ENV{HOME}/releases/"
+      . $config->param('branch') . '/'
+      . $config->param('version') );
+
+make_path( $config->param('build-result') );
+
+opendir( DIR, $config->param('build-result') );
 
 while ( my $file = readdir(DIR) ) {
 
     # We only want files
-    next unless ( -f "$config{'build-result'}/$file" );
+    $file = $config->param('build-result') . "$file";
+    next unless ( -f $file );
 
-    unlink "$config{'build-result'}/$file";
+    unlink $file;
 }
 
 $ENV{TEST_QA} = 1;
 
-if ( $config{'tarball'} =~ m#/# ) {
-    $config{'tarball'} = '' unless ( -d dirname( $config{'tarball'} ) );
+if ( $config->param('tarball') =~ m#/# ) {
+    $config->param( 'tarball', '' )
+      unless ( -d dirname( $config->param('tarball') ) );
 }
-elsif ( $config{'tarball'} ) {
-    $config{'tarball'} = "$config{'build-result'}/$config{'tarball'}";
+elsif ( $config->param('tarball') ) {
+    $config->param( 'tarball', build_result( $config->param('tarball') ) );
 }
 
-$config{'tarball'} =
-  "$config{'build-result'}/koha-$config{'branch'}-$config{'version'}.tar.gz"
-  unless ( $config{'tarball'} );
+set_default( 'email-file', build_result('announcement.eml') );
 
-$config{'rnotes'} = "$config{'build-result'}/release_notes.txt"
-  unless $config{'rnotes'};
+set_default(
+    'tarball',
+    build_result(
+            'koha-'
+          . $config->param('branch') . '-'
+          . $config->param('version')
+          . '.tar.gz'
+    )
+);
 
-unlink $config{'tarball'};
-unlink $config{'rnotes'} unless $config{'use-dist-rnotes'};
-unlink "$config{'build-result'}/errors.log";
+set_default( 'rnotes', build_result('release_notes.txt') );
+
+set_default( 'errorlog', build_result('errors.log') );
+
+set_default( 'tgz-install-dir', build_result('fresh') );
+
+unlink $config->param('tarball');
+unlink $config->param('rnotes') unless $config->param('use-dist-rnotes');
+unlink $config->param('errorlog');
 
 print_log(
     colored(
@@ -206,28 +226,32 @@ print_log(
         'blue'
     )
 );
-print_log("\tBranch:  $config{'branch'}\n\tVersion: $config{'version'}\n");
+print_log( "\tBranch:  "
+      . $config->param('branch')
+      . "\n\tVersion: "
+      . $config->param('version')
+      . "\n" );
 
-unless ( $config{'skip-tests'} ) {
+unless ( $config->param('skip-tests') ) {
     tap_task(
         "Running unit tests",
         0,
         undef,
-        tap_dir("$config{'kohaclone'}/t"),
-        tap_dir("$config{'kohaclone'}/t/db_dependent"),
-        tap_dir("$config{'kohaclone'}/t/db_dependent/Labels"),
-        "$config{'kohaclone'}/xt/author/icondirectories.t",
-        "$config{'kohaclone'}/xt/author/podcorrectness.t",
-        "$config{'kohaclone'}/xt/author/translatable-templates.t",
-        "$config{'kohaclone'}/xt/author/valid-templates.t",
-        "$config{'kohaclone'}/xt/permissions.t",
-        "$config{'kohaclone'}/xt/tt_valid.t"
+        tap_dir( $config->param('kohaclone') . '/t' ),
+        tap_dir( $config->param('kohaclone') . '/t/db_dependent' ),
+        tap_dir( $config->param('kohaclone') . '/t/db_dependent/Labels' ),
+        $config->param('kohaclone') . '/xt/author/icondirectories.t',
+        $config->param('kohaclone') . '/xt/author/podcorrectness.t',
+        $config->param('kohaclone') . 'xt/author/translatable-templates.t',
+        $config->param('kohaclone') . 'xt/author/valid-templates.t',
+        $config->param('kohaclone') . 'xt/permissions.t',
+        $config->param('kohaclone') . 'xt/tt_valid.t'
     );
     $finished_tests = 'yes';
 }
 
-unless ( $config{'skip-deb'} ) {
-    unless ( $config{'skip-pbuilder'} ) {
+unless ( $config->param('skip-deb') ) {
+    unless ( $config->param('skip-pbuilder') ) {
         print_log("Updating pbuilder...");
         run_cmd("sudo pbuilder update 2>&1");
         warn colored( "Error updating pbuilder. Continuing anyway.",
@@ -235,60 +259,76 @@ unless ( $config{'skip-deb'} ) {
           if ($?);
     }
 
-    $ENV{DEBEMAIL}    = $config{'maintainer-email'};
-    $ENV{DEBFULLNAME} = $config{'maintainer-name'};
+    $ENV{DEBEMAIL}    = $config->param('maintainer-email');
+    $ENV{DEBFULLNAME} = $config->param('maintainer-name');
 
     my $extra_args = '';
-    $extra_args = '--noautoversion' unless ( $config{'autoversion'} );
+    $extra_args = '--noautoversion' unless ( $config->param('autoversion') );
     shell_task(
         "Building packages",
-"debian/build-git-snapshot --distribution=$config{'branch'} -r $config{'build-result'} -v $config{'version'} $extra_args 2>&1"
+        "debian/build-git-snapshot --distribution="
+          . $config->param('branch') . " -r "
+          . $config->param('build-result') . " -v "
+          . $config->param('version')
+          . "$extra_args 2>&1"
     );
 
     fail('Building package')
       unless $output =~
           m#^dpkg-deb: building package `koha-common' in `[^'`/]*/([^']*)'.$#m;
-    $config{'package'} = "$config{'build-result'}/$1";
+    $config->param( 'package', build_result($1) );
 
-    fail('Building package') unless ( -f $config{'package'} );
+    fail('Building package') unless ( -f $config->param('package') );
 
     $built_packages = 'yes';
 }
 
-unless ( $config{'skip-tgz'} ) {
+unless ( $config->param('skip-tgz') ) {
     print_log("Preparing release tarball...");
 
     shell_task(
         "Creating archive",
-"git archive --format=tar --prefix=koha-$config{'version'}/ $config{'branch'} | gzip > $config{'tarball'}",
+        'git archive --format=tar --prefix=koha-'
+          . $config->param('version') . '/ '
+          . $config->param('branch')
+          . ' | gzip > '
+          . $config->param('tarball'),
         1
     );
 
     $built_tarball = 'yes';
 
-    shell_task( "Signing archive", "gpg -sb $config{'tarball'}", 1 )
-      if ( $config{'sign'} );
+    shell_task( "Signing archive", "gpg -sb " . $config->param('tarball'), 1 )
+      if ( $config->param('sign') );
 
-    shell_task( "md5summing archive",
-        "md5sum $config{'tarball'} > $config{'tarball'}.MD5", 1 );
+    shell_task(
+        "md5summing archive",
+        "md5sum "
+          . $config->param('tarball') . " > "
+          . $config->param('tarball') . ".MD5",
+        1
+    );
 
-    if ( $config{'sign'} ) {
+    if ( $config->param('sign') ) {
         shell_task( "Signing md5sum",
-            "gpg --clearsign $config{'tarball'}.MD5", 1 );
+            "gpg --clearsign " . $config->param('tarball') . ".MD5", 1 );
         $signed_tarball = 'yes';
     }
 }
 
-unless ( $config{'skip-rnotes'} || $config{'use-dist-rnotes'} ) {
+unless ( $config->param('skip-rnotes') || $config->param('use-dist-rnotes') ) {
     shell_task(
         "Generating release notes",
-"$reltools/get_bugs.pl -r $config{'rnotes'} -v $config{'version'} --verbose 2>&1"
+        "$reltools/get_bugs.pl -r "
+          . $config->param('rnotes') . " -v "
+          . $config->param('version')
+          . " --verbose 2>&1"
     );
 }
 
-unless ( $config{'skip-deb'} || $config{'skip-install'} ) {
+unless ( $config->param('skip-deb') || $config->param('skip-install') ) {
     shell_task( "Installing package...",
-        "sudo dpkg -i $config{'package'} 2>&1" );
+        "sudo dpkg -i " . $config->param('package') . " 2>&1" );
     run_cmd('sudo koha-remove pkgrel  2>&1');
 
     open( my $koha_sites, '>', '/tmp/koha-sites.conf' );
@@ -307,7 +347,7 @@ EOF
             "sudo koha-create --marcflavor=$lflavour --create-db pkgrel 2>&1",
             1 );
 
-        unless ( $config{'skip-webinstall'} ) {
+        unless ( $config->param('skip-webinstall') ) {
             my $pkg_user =
 `sudo xmlstarlet sel -t -v 'yazgfs/config/user' '/etc/koha/sites/pkgrel/koha-conf.xml'`;
             my $pkg_pass =
@@ -331,40 +371,41 @@ EOF
     }
 }
 
-if ( $config{'sign'} && !$config{'skip-deb'} ) {
-    shell_task( "Signing packages",
-        "debsign $config{'build-result'}/*.changes" );
+if ( $config->param('sign') && !$config->param('skip-deb') ) {
+    shell_task( "Signing packages", "debsign " . build_result('*.changes') );
     $signed_packages = 'yes';
 }
 
-if ( $config{'deploy'} && !$config{'skip-deb'} ) {
-    shell_task( "Importing packages to apt repo",
-        "dput koha $config{'build-result'}/*.changes" );
+if ( $config->param('deploy') && !$config->param('skip-deb') ) {
+    shell_task(
+        "Importing packages to apt repo",
+        "dput koha " . build_result('*.changes')
+    );
     $deployed = 'yes';
 }
 
-unless ( $config{'skip-tgz'} || $config{'skip-install'} ) {
+unless ( $config->param('skip-tgz') || $config->param('skip-install') ) {
     $drh = DBI->install_driver("mysql");
     for my $flavour (@marcflavours) {
         my $lflavour = lc $flavour;
         print_log("Installing from tarball for $flavour...");
-        $ENV{INSTALL_BASE}     = "$config{'build-result'}/fresh/koha";
-        $ENV{DESTDIR}          = "$config{'build-result'}/fresh";
-        $ENV{KOHA_CONF_DIR}    = "$config{'build-result'}/fresh/etc";
-        $ENV{ZEBRA_CONF_DIR}   = "$config{'build-result'}/fresh/etc/zebradb";
-        $ENV{PAZPAR2_CONF_DIR} = "$config{'build-result'}/fresh/etc/pazpar2";
-        $ENV{ZEBRA_LOCK_DIR} = "$config{'build-result'}/fresh/var/lock/zebradb";
-        $ENV{ZEBRA_DATA_DIR} = "$config{'build-result'}/fresh/var/lib/zebradb";
-        $ENV{ZEBRA_RUN_DIR}  = "$config{'build-result'}/fresh/var/run/zebradb";
-        $ENV{LOG_DIR}        = "$config{'build-result'}/fresh/var/log";
-        $ENV{INSTALL_MODE}   = "standard";
-        $ENV{DB_TYPE}        = "mysql";
-        $ENV{DB_HOST}        = "localhost";
-        $ENV{DB_NAME}        = "$config{'database'}";
-        $ENV{DB_USER}        = "$config{'user'}";
-        $ENV{DB_PASS}        = "$config{'password'}";
-        $ENV{INSTALL_ZEBRA}  = "yes";
-        $ENV{INSTALL_SRU}    = "no";
+        $ENV{INSTALL_BASE}        = build_result('fresh/koha');
+        $ENV{DESTDIR}             = build_result('fresh');
+        $ENV{KOHA_CONF_DIR}       = build_result('fresh/etc');
+        $ENV{ZEBRA_CONF_DIR}      = build_result('fresh/etc/zebradb');
+        $ENV{PAZPAR2_CONF_DIR}    = build_result('fresh/etc/pazpar2');
+        $ENV{ZEBRA_LOCK_DIR}      = build_result('fresh/var/lock/zebradb');
+        $ENV{ZEBRA_DATA_DIR}      = build_result('fresh/var/lib/zebradb');
+        $ENV{ZEBRA_RUN_DIR}       = build_result('fresh/var/run/zebradb');
+        $ENV{LOG_DIR}             = build_result('fresh/var/log');
+        $ENV{INSTALL_MODE}        = "standard";
+        $ENV{DB_TYPE}             = "mysql";
+        $ENV{DB_HOST}             = "localhost";
+        $ENV{DB_NAME}             = $config->param('database');
+        $ENV{DB_USER}             = $config->param('user');
+        $ENV{DB_PASS}             = $config->param('password');
+        $ENV{INSTALL_ZEBRA}       = "yes";
+        $ENV{INSTALL_SRU}         = "no";
         $ENV{INSTALL_PAZPAR2}     = "no";
         $ENV{ZEBRA_MARC_FORMAT}   = "$lflavour";
         $ENV{ZEBRA_LANGUAGE}      = "en";
@@ -373,10 +414,10 @@ unless ( $config{'skip-tgz'} || $config{'skip-install'} ) {
         $ENV{KOHA_USER}           = "`id -u -n`";
         $ENV{KOHA_GROUP}          = "`id -g -n`";
         $ENV{PERL_MM_USE_DEFAULT} = "1";
-        mkdir "$config{'build-result'}/fresh";
+        mkdir $config->param('tgz-install-dir');
         shell_task( "Untarring tarball for $flavour",
-            "tar zxvf $config{'tarball'} -C /tmp 2>&1", 1 );
-        chdir "/tmp/koha-$config{'version'}";
+            "tar zxvf " . $config->param('tarball') . " -C /tmp 2>&1", 1 );
+        chdir '/tmp/koha-' . $config->param('version');
 
         shell_task( "Running perl Makefile.PL for $flavour",
             "perl Makefile.PL 2>&1", 1 );
@@ -389,19 +430,24 @@ unless ( $config{'skip-tgz'} || $config{'skip-install'} ) {
             "make install 2>&1", 1 );
 
         run_cmd(
-"sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' $config{'build-result'}/fresh/etc/koha-httpd.conf"
-        );
+"sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' "
+              . build_result('fresh/etc/koha-httpd.conf') );
 
-        unless ( $config{'skip-webinstall'} ) {
+        unless ( $config->param('skip-webinstall') ) {
             clean_tgz_webinstall();
             print_log(" Creating database for $flavour...");
-            $drh->func( 'createdb', $config{'database'}, 'localhost',
-                $config{'user'}, $config{'password'}, 'admin' )
-              or fail("Creating database for $flavour");
+            $drh->func(
+                'createdb', $config->param('database'),
+                'localhost',
+                $config->param('user'),
+                $config->param('password'), 'admin'
+            ) or fail("Creating database for $flavour");
 
             shell_task(
                 "Adding to sites-available for $flavour",
-"sudo ln -s $config{'build-result'}/fresh/etc/koha-httpd.conf /etc/apache2/sites-available/release-fresh 2>&1",
+                "sudo ln -s "
+                  . build_result('/fresh/etc/koha-httpd.conf')
+                  . " /etc/apache2/sites-available/release-fresh 2>&1",
                 1
             );
 
@@ -414,8 +460,8 @@ unless ( $config{'skip-tgz'} || $config{'skip-install'} ) {
             my $harness_args = {
                 test_args => [
                     "http://localhost:9002", "http://localhost:9001",
-                    "$flavour",              "$config{'user'}",
-                    "$config{'password'}"
+                    "$flavour",              $config->param('user'),
+                    $config->param('password')
                 ]
             };
             tap_task( "Running webinstaller for $flavour",
@@ -432,39 +478,65 @@ unless ( $config{'skip-tgz'} || $config{'skip-install'} ) {
     }
 }
 
-if ( $config{'tag'} ) {
-    my $tag_action = $config{'sign'} ? '-s' : '-a';
+if ( $config->param('tag') ) {
+    my $tag_action = $config->param('sign') ? '-s' : '-a';
     shell_task(
         "Tagging current commit",
-"git tag $tag_action -m 'Koha release $config{'version'}' v$config{'version'} 2>&1"
+        "git tag $tag_action -m 'Koha release "
+          . $config->param('version') . "' v"
+          . $config->param('version') . " 2>&1"
     );
     $tagged = 'yes';
 }
 
 generate_email();
 
-if ( $config{'clean'} ) {
+if ( $config->param('clean') ) {
     clean_tgz_webinstall();
     clean_tgz();
-    remove_tree( $config{'build-result'} );
+    remove_tree( $config->param('build-result') );
     $cleaned = 'yes';
 }
 
 success();
 
+sub build_result {
+    my @components = @_;
+    my $path       = $config->param('build-result');
+
+    foreach my $component (@components) {
+        $path .= "/$component";
+    }
+    return $path;
+}
+
+sub set_default {
+    my $key   = shift;
+    my $value = shift;
+
+    chomp($value);
+    $config->param( $key, $value ) unless $config->param($key);
+}
+
 sub clean_tgz_webinstall {
     print_log(" Cleaning up tarball install...");
-    $drh->func( 'dropdb', $config{'database'}, 'localhost', $config{'user'},
-        $config{'password'}, 'admin' );
+    $drh->func(
+        'dropdb', $config->param('database'),
+        'localhost',
+        $config->param('user'),
+        $config->param('password'), 'admin'
+    );
     run_cmd("sudo a2dissite release-fresh 2>&1");
     run_cmd("sudo apache2ctl restart 2>&1");
     run_cmd("sudo rm /etc/apache2/sites-available/release-fresh 2>&1");
 }
 
 sub clean_tgz {
-    chdir( $config{'kohaclone'} );
-    remove_tree( "/tmp/koha-$config{'version'}",
-        "$config{'build-result'}/fresh" );
+    chdir( $config->param('kohaclone') );
+    remove_tree(
+        '/tmp/koha-' . $config->param('version'),
+        $config->param('tgz-install-dir')
+    );
 }
 
 sub clean_pkg_webinstall {
@@ -485,26 +557,39 @@ sub summary {
     $tested_package_install = join( ', ', @tested_package_installs )
       if ( scalar(@tested_package_installs) );
 
-    foreach my $key ( sort keys %config ) {
+    my %vars = $config->vars();
+    foreach my $key ( sort keys %vars ) {
         if ( $key =~ m/^skip-([a-z]+)$/ ) {
-            $skipped .= ", $1" if ( $config{$key} );
+            $skipped .= ", $1" if ( $config->param($key) );
         }
     }
     $skipped =~ s/^, //;
-    $config{'package'} = 'none'
-      unless ( -s $config{'package'} && not $config{'skip-deb'} );
-    $config{'tarball'} = 'none'
-      unless ( -s $config{'tarball'} && not $config{'skip-tgz'} );
-    $config{'rnotes'} = 'none'
-      unless ( -s $config{'rnotes'} && not $config{'skip-rnotes'} );
-    return if $config{'quiet'} > 1;
+    $config->param( 'package', 'none' )
+      unless ( -s $config->param('package') && not $config->param('skip-deb') );
+    $config->param( 'tarball', 'none' )
+      unless ( -s $config->param('tarball') && not $config->param('skip-tgz') );
+    $config->param( 'rnotes', 'none' )
+      unless ( -s $config->param('rnotes')
+        && not $config->param('skip-rnotes') );
+    return if $config->param('quiet') > 1;
+    my $branch  = $config->param('branch');
+    my $version = $config->param('version');
+    my $maintainer =
+        $config->param('maintainer-name') . ' <'
+      . $config->param('maintainer-email') . '>';
+    my $tarball    = $config->param('tarball');
+    my $package    = $config->param('package');
+    my $rnotes     = $config->param('rnotes');
+    my $emailfile  = $config->param('email-file');
+    my $configfile = build_result('summary.cfg');
+    $config->write($configfile);
     print <<_SUMMARY_;
 
 Release test report
 =======================================================
-Branch:                 $config{'branch'}
-Version:                $config{'version'}
-Maintainer:             $config{'maintainer-name'} <$config{'maintainer-email'}>
+Branch:                 $branch
+Version:                $version
+Maintainer:             $maintainer
 Run started at:         $starttime
 Run ended at:           $endtime
 Total run time:         $totaltime ms
@@ -519,17 +604,18 @@ Tested tarball install: $tested_tarball_install
 Signed tarball:         $signed_tarball
 Tagged git repository:  $tagged
 Cleaned:                $cleaned
-Tarball file:           $config{'tarball'}
-Package file:           $config{'package'}
-Release notes:          $config{'rnotes'}
-E-mail file:            $config{'email-file'}
+Tarball file:           $tarball
+Package file:           $package
+Release notes:          $rnotes
+E-mail file:            $emailfile
+Summary config file:    $configfile
 _SUMMARY_
 }
 
 sub success {
     summary();
     print colored( "Successfully finished release test", 'green' ), "\n"
-      unless $config{'quiet'} > 1;
+      unless $config->param('quiet') > 1;
 
     exit 0;
 }
@@ -540,23 +626,23 @@ sub fail {
 
     print colored( $component, 'bold red' ),
       colored( " failed in release test", 'red' ), "\n"
-      unless $config{'quiet'} > 1;
+      unless $config->param('quiet') > 1;
 
     summary();
     print colored( $component, 'bold red' ),
       colored( " failed in release test", 'red' ), "\n"
-      unless $config{'quiet'} > 1;
+      unless $config->param('quiet') > 1;
 
     if ($output) {
-        open( my $errorlog, ">", "$config{'build-result'}/errors.log" )
+        open( my $errorlog, ">", $config->param('errorlog') )
           or die "Unable to open error log for writing";
         print $errorlog $output;
         close($errorlog);
     }
 
-    print colored( "Error report at $config{'build-result'}/errors.log",
-        'red' ), "\n"
-      unless $config{'quiet'} > 1;
+    print colored( "Error report at " . $config->param('errorlog'), 'red' ),
+      "\n"
+      unless $config->param('quiet') > 1;
 
     $callback->() if ( ref $callback eq 'CODE' );
 
@@ -564,7 +650,7 @@ sub fail {
 }
 
 sub print_log {
-    print @_, "\n" unless $config{'quiet'};
+    print @_, "\n" unless $config->param('quiet');
 }
 
 sub tap_dir {
@@ -587,11 +673,12 @@ sub tap_dir {
 
 sub run_cmd {
     my $command = shift;
-    print colored( "> $command\n", 'cyan' ) if ( $config{'verbose'} >= 1 );
+    print colored( "> $command\n", 'cyan' )
+      if ( $config->param('verbose') >= 1 );
     my $pid = open( my $outputfh, "-|", "$command" )
       or die "Unable to run $command\n";
     while (<$outputfh>) {
-        print $_ if ( $config{'verbose'} >= 2 );
+        print $_ if ( $config->param('verbose') >= 2 );
         $output .= $_;
     }
     close($outputfh);
@@ -619,18 +706,18 @@ sub tap_task {
     my @tests  = @_;
     my $logmsg = ( ' ' x $subtask ) . $message;
 
-    if ( $config{'verbose'} ) {
+    if ( $config->param('verbose') ) {
         $harness_args->{'verbosity'} = 1;
     }
-    elsif ( $config{'quiet'} ) {
+    elsif ( $config->param('quiet') ) {
         $harness_args->{'verbosity'} = -1;
     }
-    $harness_args->{'lib'}   = [ $config{'kohaclone'} ];
+    $harness_args->{'lib'}   = [ $config->param('kohaclone') ];
     $harness_args->{'merge'} = 1;
 
     print_log("$logmsg...");
 
-    if ( $config{'verbose'} >= 1 ) {
+    if ( $config->param('verbose') >= 1 ) {
         my $command = 'prove ';
         foreach my $test (@tests) {
             $command .= "$test ";
@@ -641,7 +728,7 @@ sub tap_task {
     my $pid = open( my $testfh, '-|' ) // die "Can't fork to run tests: $!\n";
     if ($pid) {
         while (<$testfh>) {
-            print $_ if ( $config{'verbose'} >= 2 );
+            print $_ if ( $config->param('verbose') >= 2 );
             $output .= $_;
         }
         waitpid( $pid, 0 );
@@ -667,7 +754,7 @@ sub process_tt_task {
 
     my $tt = Template->new(
         {
-            INCLUDE_PATH => "$reltools:$config{'build-result'}",
+            INCLUDE_PATH => "$reltools",
             ABSOLUTE     => 1,
         }
     );
@@ -680,18 +767,21 @@ sub generate_email {
     my $content = process_tt_task(
         'Generating e-mail',
         0,
-        $config{'email-template'},
-        { VERSION => $config{'version'}, RELNOTES => $config{'rnotes'} }
+        $config->param('email-template'),
+        {
+            VERSION  => $config->param('version'),
+            RELNOTES => $config->param('rnotes')
+        }
     );
     $content =~ s/^####.*$//m;
     my $msg = MIME::Lite->new(
-        From    => $config{'maintainer-email'},
-        To      => $config{'email-recipients'},
-        Subject => $config{'email-subject'},
+        From    => $config->param('maintainer-email'),
+        To      => $config->param('email-recipients'),
+        Subject => $config->param('email-subject'),
         Data    => $content,
     );
-    open( my $emailfh, ">", $config{'email-file'} );
-    $msg->print();
+    open( my $emailfh, ">", $config->param('email-file') );
+    $msg->print($emailfh);
     close($emailfh);
 }
 
