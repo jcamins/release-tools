@@ -44,6 +44,7 @@ $Term::ANSIColor::AUTORESET = 1;
 # command-line parameters
 my $quiet        = 0;
 my $want_help    = 0;
+my $full = 0;
 my %skip;
 my $sign = 0;
 my $deploy = 0;
@@ -65,7 +66,7 @@ my $output;
 my $maintainername;
 my $maintaineremail;
 my $drh;
-my $verbose;
+my $verbose = 0;
 my $deployed = 'no';
 my $signed_tarball = 'no';
 my $signed_packages = 'no';
@@ -86,7 +87,8 @@ my $options = GetOptions(
     'g|tag'          => \$tag,
     'c|clean'        => \$clean,
     'a|autoversion'  => \$autoversion,
-    'v|verbose'      => \$verbose,
+    'v|verbose+'      => \$verbose,
+    'full'           => \$full,
     'skip-tests'     => \$skip{tests},
     'skip-deb'       => \$skip{deb},
     'skip-tgz'       => \$skip{tgz},
@@ -116,6 +118,12 @@ if ( $want_help ) {
     usage();
 }
 
+if ( $full ) {
+    $sign = 1;
+    $deploy = 1;
+    $tag = 1;
+}
+
 my $starttime = time();
 
 my $reltools = File::Spec->rel2abs(dirname(__FILE__));
@@ -132,7 +140,7 @@ chomp($version = `grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/
 chomp($maintainername  = `git config --global --get user.name`) unless $maintainername;
 chomp($maintaineremail = `git config --global --get user.email`) unless $maintaineremail;
 
-$build_result = "$ENV{HOME}/releases/$branch/$version" unless (-d $build_result);
+$build_result = "$ENV{HOME}/releases/$branch/$version" unless ($build_result);
 make_path($build_result);
 
 opendir(DIR, $build_result);
@@ -462,10 +470,10 @@ sub tap_dir {
 
 sub run_cmd {
     my $command = shift;
-    print colored("> $command\n", 'cyan') if $verbose;
+    print colored("> $command\n", 'cyan') if ($verbose >= 1);
     my $pid = open(my $outputfh, "-|", "$command") or die "Unable to run $command\n";
     while (<$outputfh>) {
-        print $_ if $verbose;
+        print $_ if ($verbose >= 2);
         $output .= $_;
     }
     close ($outputfh);
@@ -503,10 +511,18 @@ sub tap_task {
 
     print_log("$logmsg...");
 
+    if ($verbose >= 1) {
+        my $command = 'prove ';
+        foreach my $test (@tests) {
+            $command .= "$test ";
+        }
+        print colored("> $command\n", 'cyan');
+    }
+
     my $pid = open(my $testfh, '-|') // die "Can't fork to run tests: $!\n";
     if ($pid) {
         while (<$testfh>) {
-            print $_ if $verbose;
+            print $_ if ($verbose >= 2);
             $output .= $_;
         }
         waitpid($pid, 0);
