@@ -269,7 +269,8 @@ specified if this option is used.
 
 =item B<--post-deploy-script>
 
-Run the specified script at the end of the deploy phase.
+Run the specified script at the end of the deploy phase with the summary
+config file as an argument.
 
 =back
 
@@ -557,6 +558,17 @@ unless ( $config->param('skip-tgz') ) {
             "gpg --clearsign " . $config->param('tarball') . ".MD5", 1 );
         $signed_tarball = 'yes';
     }
+
+    if ( $config->param('deploy') ) {
+        $config->param('staging', build_result('staging'));
+        mkdir $config->param('staging');
+        symlink $config->param('tarball'), $config->param('staging') . basename($config->param('tarball'));
+        symlink $config->param('tarball') . '.MD5', $config->param('staging') . basename($config->param('tarball') . '.MD5');
+        if ($signed_tarball) {
+            symlink $config->param('tarball') . '.MD5.asc', $config->param('staging') . basename($config->param('tarball') . '.MD5.asc');
+            symlink $config->param('tarball') . '.sig', $config->param('staging') . basename($config->param('tarball') . '.sig');
+        }
+    }
 }
 
 unless ( $config->param('skip-rnotes') || $config->param('use-dist-rnotes') ) {
@@ -734,9 +746,12 @@ if ( $config->param('tag') ) {
 
 generate_email();
 
+my $configfile = build_result('summary.cfg');
+$config->write($configfile);
+
 if ( $config->param('deploy') && $config->param('post-deploy-script') ) {
     shell_task( "Running post-deploy script",
-        $config->param('post-deploy-script') );
+        $config->param('post-deploy-script ' . $configfile) );
 }
 
 if ( $config->param('clean') ) {
@@ -829,8 +844,6 @@ sub summary {
     my $package    = $config->param('package');
     my $rnotes     = $config->param('rnotes');
     my $emailfile  = $config->param('email-file');
-    my $configfile = build_result('summary.cfg');
-    $config->write($configfile);
     print <<_SUMMARY_;
 
 Release test report
