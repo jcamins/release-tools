@@ -1,7 +1,8 @@
 #!/usr/bin/perl -w
 
 # koha-post-deploy.pl - script to automatically deploy Koha tarball
-# Copyright (C) 2012 C & P Bibliography Services
+#
+# Copyright (C) 2012  C & P Bibliography Services
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
