@@ -1,0 +1,10 @@
+The Koha community is proud to release Koha version [% VERSION %]. This is a
+bugfix release, and contains a number of important fixes
+
+You can obtain Koha [% VERSION %] from the http://download.koha-community.org
+site. Debian packages will be available from the
+http://debian.koha-community.org shortly also.
+
+Please read the release notes below for more information
+
+[% INSERT $RELNOTES %]
