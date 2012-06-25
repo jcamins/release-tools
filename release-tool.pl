@@ -122,7 +122,7 @@ my $drh;
 my @tested_tarball_installs;
 my @tested_package_installs;
 my %cmdline;
-my $config = Config::Simple->new();
+my $config = new Config::Simple( syntax => 'http' );
 
 =head2 General options
 
@@ -374,7 +374,7 @@ if ( defined( $cmdline{config} ) && -f File::Spec->rel2abs( $cmdline{config} ) )
     $config->read( $cmdline{config} );
 }
 foreach my $key ( keys %defaults ) {
-    $config->param( $key, $defaults{$key} );
+    $config->param( $key, $defaults{$key} ) unless $config->param($key);
 }
 foreach my $key ( keys %cmdline ) {
     $config->param( $key, $cmdline{$key} );
