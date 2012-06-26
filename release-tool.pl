@@ -76,7 +76,7 @@ my %defaults = (
     'maintainer-email'   => '',
     'maintainer-name'    => '',
     package              => '',
-    'post-deploy-script' => '',
+    'post-deploy-script' => [ '' ],
     quiet                => 0,
     rnotes               => '',
     sign                 => 0,
@@ -354,7 +354,7 @@ my $options = GetOptions(
     'user=s', 'password=s',
     'use-dist-rnotes',
     'maintainer-name=s', 'maintainer-email=s',
-    'post-deploy-script',
+    'post-deploy-script=s@',
 
     # Output options
     'build-result|b=s', 'errorlog=s',
@@ -746,14 +746,16 @@ if ( $config->param('tag') ) {
     $tagged = 'yes';
 }
 
-generate_email();
+generate_email() unless $config->param('skip-rnotes');
 
 my $configfile = build_result('summary.cfg');
 $config->write($configfile);
 
 if ( $config->param('deploy') && $config->param('post-deploy-script') ) {
-    shell_task( "Running post-deploy script",
-        $config->param('post-deploy-script ' . $configfile) );
+    foreach my $script ($config->param('post-deploy-script')) {
+        shell_task( "Running post-deploy script",
+            $script . ' ' . $configfile );
+    }
 }
 
 if ( $config->param('clean') ) {
