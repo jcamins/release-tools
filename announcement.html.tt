@@ -1,0 +1,14 @@
+The Koha release team is happy to announce the release of Koha [% VERSION %].
+
+This is a stable release and contains bugfixes as well as updated translations.
+
+You can download it at
+
+<a href="http://download.koha-community.org/" target="_blank">http://download.koha-community.org/</a>
+
+Go forth, download, and enjoy :)
+<div>Release notes are below the fold</div>
+<div><!--more--></div>
+<div>
+<pre>[% RELNOTES %]</pre>
+</div>
