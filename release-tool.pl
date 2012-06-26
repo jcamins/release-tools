@@ -1068,6 +1068,16 @@ set up. Once you have set up your repo, put the following in your  ~/.dput.cf:
     run_dinstall = 0
     post_upload_command = reprepro -b /home/apt/koha processincoming default
 
+=head1 PBUILDER CONFIGURATION
+
+Koha's C<build-git-snapshot> script uses uses L<pbuilder(8)> for building the
+Debian packages, so you will need a working pbuilder environment. To create
+one, you can use the following command:
+
+    sudo pbuilder create \
+        --othermirror 'deb http://debian.koha-community.org/koha squeeze main' \
+        --mirror http://ftp.debian.org/debian
+
 =head1 SEE ALSO
 
 L<dch(1)>, L<dput(1)>, L<pbuilder(8)>, L<reprepro(1)>
