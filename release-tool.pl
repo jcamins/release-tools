@@ -488,10 +488,10 @@ unless ( $config->param('skip-tests') ) {
         tap_dir( $config->param('kohaclone') . '/t/db_dependent/Labels' ),
         $config->param('kohaclone') . '/xt/author/icondirectories.t',
         $config->param('kohaclone') . '/xt/author/podcorrectness.t',
-        $config->param('kohaclone') . 'xt/author/translatable-templates.t',
-        $config->param('kohaclone') . 'xt/author/valid-templates.t',
-        $config->param('kohaclone') . 'xt/permissions.t',
-        $config->param('kohaclone') . 'xt/tt_valid.t'
+        $config->param('kohaclone') . '/xt/author/translatable-templates.t',
+        $config->param('kohaclone') . '/xt/author/valid-templates.t',
+        $config->param('kohaclone') . '/xt/permissions.t',
+        $config->param('kohaclone') . '/xt/tt_valid.t'
     );
     $finished_tests = 'yes';
 }
