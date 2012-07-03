@@ -509,7 +509,7 @@ unless ( $config->param('skip-deb') ) {
     $ENV{DEBFULLNAME} = $config->param('maintainer-name');
 
     my $extra_args = '';
-    $extra_args = '--noautoversion' unless ( $config->param('autoversion') );
+    $extra_args = ' --noautoversion' unless ( $config->param('autoversion') );
     shell_task(
         "Building packages",
         "debian/build-git-snapshot --distribution="
@@ -564,11 +564,11 @@ unless ( $config->param('skip-tgz') ) {
     if ( $config->param('deploy') ) {
         $config->param('staging', build_result('staging'));
         mkdir $config->param('staging');
-        symlink $config->param('tarball'), $config->param('staging') . basename($config->param('tarball'));
-        symlink $config->param('tarball') . '.MD5', $config->param('staging') . basename($config->param('tarball') . '.MD5');
+        symlink $config->param('tarball'), $config->param('staging') . '/' . basename($config->param('tarball'));
+        symlink $config->param('tarball') . '.MD5', $config->param('staging') . '/' . basename($config->param('tarball') . '.MD5');
         if ($signed_tarball) {
-            symlink $config->param('tarball') . '.MD5.asc', $config->param('staging') . basename($config->param('tarball') . '.MD5.asc');
-            symlink $config->param('tarball') . '.sig', $config->param('staging') . basename($config->param('tarball') . '.sig');
+            symlink $config->param('tarball') . '.MD5.asc', $config->param('staging') .'/' .  basename($config->param('tarball') . '.MD5.asc');
+            symlink $config->param('tarball') . '.sig', $config->param('staging') .'/' .  basename($config->param('tarball') . '.sig');
         }
     }
 }
@@ -831,6 +831,7 @@ sub summary {
         }
     }
     $skipped =~ s/^, //;
+    $skipped = 'none' unless $skipped;
     $config->param( 'package', 'none' )
       unless ( -s $config->param('package') && not $config->param('skip-deb') );
     $config->param( 'tarball', 'none' )
