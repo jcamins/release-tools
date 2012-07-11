@@ -26,6 +26,7 @@ use Getopt::Long;
 use Template;
 use File::Basename;
 use File::Spec;
+use lib('.');
 
 # TODO:
 #   1. Paramatize!
@@ -78,21 +79,28 @@ $arguments{shortversion} = "$1.$2.$3";
 $arguments{shortversion} .= "$5" if ($5);
 $arguments{expandedversion} = "$1.0$2.0$3";
 $arguments{expandedversion} .= "$5" if ($5);
+$arguments{major} = "$1." . ($2 % 2 ? $2 + 1 : $2);
+$arguments{lastmajor} = "$1." . ($2 - 2);
+$arguments{nextmajor} = "$1." . ($2 % 2 ? $2 + 1 : $2 + 2) . ".0";
 
 $template    = "release_notes_tmpl.tt" unless $template;
 $rnotes      = "misc/release_notes/release_notes_$1_$2_$3.txt" unless $rnotes;
 
-my $pootle = "http://translate.koha-community.org/projects/$1$2/";
-$pootle = "http://translate.koha-community.org/" unless get($pootle);
+my $pootle = "http://translate.koha-community.org/projects/$arguments{major}/";
+$pootle = "http://translate.koha-community.org/" unless defined(get($pootle));
 
 my $translationpage = get($pootle);
 my @translations = ( 'English (USA)' );
 
 while ($translationpage =~ m#<td class="stats-name">\W*<a[^>]*>([^<]*)</a>\W*</td>\W*<td class="stats-graph">\W*<div class="sortkey">([0-9]*)<#g) {
-    push @translations, $1 if ($2 > 50);
+    push @translations, "$1 ($2%)" if ($2 > 50);
 }
 
-$arguments{translations} = '  * ' . join("\n  * ", sort(@translations)) . "\n";
+while ($translationpage =~ m#<td class="language">\W*<a[^>]*>([^<]*)</a>\W*</td>\W*<td>\W*<div class="sortkey">([0-9]*)<#g) {
+    push @translations, "$1 ($2%)" if ($2 > 50);
+}
+
+$arguments{translations} = '  * ' . join("\n  * ", sort(@translations)) . "\n" if @translations;
 
 print "Using template: $template and release notes file: $rnotes\n\n";
 
@@ -169,7 +177,7 @@ foreach my $queryline (@syspref_queries) {
     $variable =~ s/['"`]//g;
     push @sysprefs, $variable;
 }
-$arguments{sysprefs} = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n";
+$arguments{sysprefs} = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n" if @sysprefs;
 
 # Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
 # WARNING!!! Obfuscation ahead!!!
@@ -183,7 +191,7 @@ my @signers;
 my @signer_list = map { $_->[1] }
     sort { $a->[0] cmp $b->[0] }
     map { [(split /\s+/, $_)[scalar(@signers = split /\s+/, $_)-1], $_] }
-    qx(git log v3.06.05..HEAD | grep 'Signed-off-by' | sed -e 's/^.*Signed-off-by: //' | sed -e 's/ <.*\$//' | sort -k3 - | uniq -c);
+    qx(git log $tag..$HEAD | grep 'Signed-off-by' | sed -e 's/^.*Signed-off-by: //' | sed -e 's/ <.*\$//' | sort -k3 - | uniq -c);
 
 $arguments{contributors} = join "", @contributor_list;
 $arguments{signers} = join "", @signer_list;
