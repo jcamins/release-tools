@@ -1,0 +1,19 @@
+  Release Manager:       Paul Poulain <paul.poulain@biblibre.com>
+  Documentation Manager: Nicole C Engard <nengard@gmail.com>
+  Translation Manager:   Frédéric Demians <frederic@tamil.fr>
+  Translation Team:      Katrin Fischer <Katrin.Fischer@bsz-bw.de>,
+                         Marijana Glavica <mglavica@ffzg.hr>
+  QA Manager:            Ian Walls <koha.sekjal@gmail.com>
+  QA Team:               Marcel de Rooy <M.de.Rooy@rijksmuseum.nl>,
+                         Jonathan Druart <jonathan.druart@biblibre.com>,
+                         Mason James <mtj@kohaaloha.com>
+  Bug Wranglers:         Magnus Enger <magnus@enger.priv.no>,
+                         Katrin Fischer <Katrin.Fischer@bsz-bw.de>,
+                         Dobrica Pavlinušić <dpavlin@rot13.org>
+  Packaging Manager:     Robin Sheat <robin@catalyst.net.nz>
+  Packaging Assistant:   Mason James <mtj@kohaaloha.com>
+
+  Release Maintainer (3.4.x): Chris Nighswonger <cnighswonger@foundations.edu>
+  Release Maintainer (3.6.x): Jared Camins-Esakov <jcamins@cpbibliography.com>
+  Release Maintainer (3.8.x): Chris Cormack <chrisc@catalyst.net.nz>
+

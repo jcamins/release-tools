@@ -44,9 +44,10 @@ New sysprefs in [% shortversion %]
 System requirements
 ======================
 
-    Changes since [% lastmajor %]:
+    Important notes:
     
     * Perl 5.10 is required
+    * Zebra is required
 
 
 Documentation
@@ -60,7 +61,7 @@ home page for Koha documentation is
 As of the date of these release notes, only the English version of the
 Koha manual is available:
 
-    http://manual.koha-community.org/[% major %]/en/
+    http://manual.koha-community.org/[% line %]/en/
 
 The Git repository for the Koha manual can be found at
 
@@ -91,41 +92,25 @@ The most up-to-date translations can be found at:
 
     http://translate.koha-community.org/
 
+[%- IF releaseteam %]
 Release Team
 ======================
 
-The release team for Koha [% major %] is
+The release team for Koha [% line %] is
 
-Release Manager:        Chris Cormack <chrisc@catalyst.net.nz>
-Documentation Manager:  Nicole C Engard <nengard@gmail.com>
-Translation Manager:    Frédéric Demians <frederic@tamil.fr>
-QA Manager:             Ian Walls <ian.walls@bywatersolutions.com>
-Bug Wranglers:          MJ Ray, Marcel de Rooy, Paul Poulain, Mason James
-
-Past Release Maintainer (3.6.x):
-                        Chris Nighswonger <cnighswonger@foundations.edu>
-Release Maintainer (3.6.x):
-                        Jared Camins-Esakov <jcamins@cpbibliography.com>
-
-
-
-
+[% INSERT $releaseteam %]
+[% END -%]
 Credits
 ======================
 
+[% IF sponsors %]
 We thank the following libraries who are known to have sponsored
-new features in Koha [% major %]:
-  * Los Gatos Public Library
-  * NEKLS
-  * East Brunswick Public Library
-  * Athens County Public Libraries
-  * Horowhenua Library Trust
-  * Halton Borough Council
-  * South Taranaki District Council
+new features in Koha [% line %]:
+[% sponsors -%]
+[% END -%]
 
 [%- IF contributors %]
 We thank the following individuals who contributed patches to Koha [% shortversion %].
-
 [% contributors %]
 [% END -%]
 
@@ -151,7 +136,6 @@ The branch for this version of Koha and future bugfixes in this release
 line is [% branch %].
 
 The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
-The next major feature release of Koha will be Koha [% nextmajor %].
 
 Bugs and feature requests
 ======================
