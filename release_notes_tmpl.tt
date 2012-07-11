@@ -44,7 +44,7 @@ New sysprefs in [% shortversion %]
 System requirements
 ======================
 
-    Changes since 3.4:
+    Changes since [% lastmajor %]:
     
     * Perl 5.10 is required
 
@@ -60,7 +60,7 @@ home page for Koha documentation is
 As of the date of these release notes, only the English version of the
 Koha manual is available:
 
-    http://manual.koha-community.org/3.6/en/
+    http://manual.koha-community.org/[% major %]/en/
 
 The Git repository for the Koha manual can be found at
 
@@ -94,7 +94,7 @@ The most up-to-date translations can be found at:
 Release Team
 ======================
 
-The release team for Koha 3.6 is
+The release team for Koha [% major %] is
 
 Release Manager:        Chris Cormack <chrisc@catalyst.net.nz>
 Documentation Manager:  Nicole C Engard <nengard@gmail.com>
@@ -114,7 +114,7 @@ Credits
 ======================
 
 We thank the following libraries who are known to have sponsored
-new features in Koha 3.6:
+new features in Koha [% major %]:
   * Los Gatos Public Library
   * NEKLS
   * East Brunswick Public Library
@@ -151,6 +151,7 @@ The branch for this version of Koha and future bugfixes in this release
 line is [% branch %].
 
 The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
+The next major feature release of Koha will be Koha [% nextmajor %].
 
 Bugs and feature requests
 ======================
