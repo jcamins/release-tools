@@ -23,6 +23,9 @@ use POSIX qw(strftime);
 use LWP::Simple;
 use Text::CSV;
 use Getopt::Long;
+use Template;
+use File::Basename;
+use File::Spec;
 
 # TODO:
 #   1. Paramatize!
@@ -62,13 +65,20 @@ GetOptions(
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
 
-die "No usable version" unless $version =~ m/(\d)\.\d(\d)\.\d(\d)(\.\d+)?(-\w*)?/g;
-my $simplified_version = "$1.$2.$3";
-$simplified_version .= "$5" if ($5);
-my $expanded_version = "$1.0$2.0$3";
-$expanded_version .= "$5" if ($5);
+my $tt = Template->new(
+        {
+        INCLUDE_PATH => File::Spec->rel2abs( dirname(__FILE__) ),
+        }
+    );
+my %arguments;
 
-$template    = "misc/release_notes/release_notes_$1_$2_x.tmpl" unless $template;
+die "No usable version" unless $version =~ m/(\d)\.\d(\d)\.\d(\d)(\.\d+)?(-\w*)?/g;
+$arguments{shortversion} = "$1.$2.$3";
+$arguments{shortversion} .= "$5" if ($5);
+$arguments{expandedversion} = "$1.0$2.0$3";
+$arguments{expandedversion} .= "$5" if ($5);
+
+$template    = "release_notes_tmpl.tt" unless $template;
 $rnotes      = "misc/release_notes/release_notes_$1_$2_$3.txt" unless $rnotes;
 
 print "Using template: $template and release notes file: $rnotes\n\n";
@@ -82,6 +92,14 @@ die "Useful information goes here..." if $help;
 
 my @bug_list = ();
 my @git_log = qx|git log --pretty=format:'%s' $tag..$HEAD|;
+
+$arguments{branch} = `git branch | grep '*' | sed -e 's/^* //' -e 's#/#-#'`;
+chomp $arguments{branch};
+my $lastrelease = `grep -E 'Koha [0-9.]* released' docs/history.txt | tail -1`;
+$lastrelease =~ m/^([a-zA-Z]* [0-9]*) ([0-9]*)(  +|\t)Koha ([0-9.]*) released/;
+$arguments{lastreleasedate} = "$1, $2";
+$arguments{lastrelease} = $4;
+$arguments{downloadlink} = "http://download.koha-community.org/koha-$arguments{expandedversion}.tar.gz";
 
 foreach (@git_log) {
     if ($_ =~ m/([B|b]ug|BZ)?\s?(?<![a-z]|\.)(\d{4})[\s|:|,]/g) {
@@ -97,10 +115,6 @@ my %seen = ();
 print "Found " . scalar @bug_list . " bugs in this search\n\n" if $verbose;
 
 # http://bugs.koha-community.org/bugzilla3/buglist.cgi?bug_id=2629%2C2847%2C3958%2C4161%2C5150%2C5885%2C5945%2C5974%2C6390%2C6471%2C6475%2C6628%2C6629%2C6679%2C6799%2C6895%2C6955%2C6963%2C6977%2C6989%2C6994%2C7061%2C7069%2C7076%2C7084%2C7085%2C7095%2C7117%2C7128%2C7134%2C7138%2C7146%2C7184%2C7185%2C7188%2C7207%2C7221&bug_id_type=anyexact&query_format=advanced&ctype=csv
-
-my $highlights = '';
-my $bugfixes = '';
-my $sysprefs = '';
 
 if (scalar @bug_list) {
     my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_severity%2Cbug_id&bug_id=";
@@ -121,10 +135,10 @@ if (scalar @bug_list) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
         if ($fields[1] =~ m/(blocker|critical|major)/) {
-            $highlights .= "$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
+            $arguments{highlights} .= "$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
         }
         elsif ($fields[1] =~ m/(normal|enhancement)/) {
-            $bugfixes .= "$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
+            $arguments{bugfixes} .= "$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
         }
     }
 }
@@ -142,63 +156,31 @@ foreach my $queryline (@syspref_queries) {
     $variable =~ s/['"`]//g;
     push @sysprefs, $variable;
 }
-$sysprefs = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n";
+$arguments{sysprefs} = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n";
 
-open (RNOTESTMPL, "<$template");
-my @release_notes = <RNOTESTMPL>;
-close RNOTESTMPL;
+# Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
+# WARNING!!! Obfuscation ahead!!!
+my @contribs;
+my @contributor_list = map { $_->[1] }
+    sort { $a->[0] cmp $b->[0] }
+    map { [(split /\s+/, $_)[scalar(@contribs = split /\s+/, $_)-1], $_] }
+    qx(git log --pretty=short $tag..$HEAD | git shortlog -s | sort -k3 -);
 
-open (RNOTES, ">$rnotes");
+my @signers;
+my @signer_list = map { $_->[1] }
+    sort { $a->[0] cmp $b->[0] }
+    map { [(split /\s+/, $_)[scalar(@signers = split /\s+/, $_)-1], $_] }
+    qx(git log v3.06.05..HEAD | grep 'Signed-off-by' | sed -e 's/^.*Signed-off-by: //' | sed -e 's/ <.*\$//' | sort -k3 - | uniq -c);
 
-foreach my $line (@release_notes) {
-    if ($line =~ m/<<([a-z|_]+)>>(.*?)/g) { # why?
-        my $key_word = $1;
-        print "Keyword found: $key_word\n\n" if $verbose;
-        #   Find and replace template markers
-        if ($key_word eq 'highlights') {
-            $line =~ s/<<highlights>>/$highlights/;
-        }
-        if ($key_word eq 'bugfixes') {
-            $line =~ s/<<bugfixes>>/$bugfixes/;
-        }
-        if ($key_word eq 'sysprefs') {
-            $line =~ s/<<sysprefs>>/$sysprefs/;
-        }
-        if ($key_word eq 'contributors') {
-            # Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
-            # WARNING!!! Obfuscation ahead!!!
-            my @contribs;
-            my @contributor_list =
-                map { $_->[1] }
-                sort { $a->[0] cmp $b->[0] }
-                map { [(split /\s+/, $_)[scalar(@contribs = split /\s+/, $_)-1], $_] }
-                qx(git log --pretty=short $tag..$HEAD | git shortlog -s | sort -k3 -);
-
-            my $contributors = join "", @contributor_list;
-            $line =~ s/<<contributors>>/$contributors/;
-        }
-        if ($key_word eq 'version') {
-            print "Simplified version number: $simplified_version\n\n" if $verbose;
-            $line =~ s/<<version>>/$simplified_version/;
-        }
-        if ($key_word eq 'expanded_version') {
-            print "Expanded version number: $expanded_version\n\n" if $verbose;
-            $line =~ s/<<expanded_version>>/$expanded_version/;
-        }
-        if ($key_word eq 'date') {
-            my $current_date = strftime "%d %b %Y", gmtime;
-            print "Datestamp of release notes: $current_date\n\n" if $verbose;
-            $line =~ s/<<date>>/$current_date/;
-        }
-    }
-    print RNOTES "$line";
-}
+$arguments{contributors} = join "", @contributor_list;
+$arguments{signers} = join "", @signer_list;
+$arguments{date} = strftime "%d %b %Y", gmtime;
 
 # Add autogenerated blurb to the bottom
 my $time_stamp = strftime("%d %b %Y %T", gmtime);
-print RNOTES "\n##### Autogenerated release notes updated last on $time_stamp Z #####";
+$arguments{timestamp} = "##### Autogenerated release notes updated last on $time_stamp Z #####";
 
-close RNOTES;
+$tt->process($template, \%arguments, $rnotes);
 
 if ($commit_changes) {
     if ($git_add) {
