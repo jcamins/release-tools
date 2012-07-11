@@ -66,25 +66,15 @@ The Git repository for the Koha manual can be found at
 
     http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary
 
+[%- IF translations %]
 Translations
 ======================
 
 Complete or near-complete translations of the OPAC and staff
 interface are available in this release for the following languages:
 
-  * Chinese (China)
-  * Chinese (Taiwan)
-  * Danish
-  * English (USA)
-  * English (UK)
-  * English (New Zealand)
-  * French (Canada)
-  * French (France)
-  * German
-  * Greek
-  * Italian
-  * Portuguese (Brazil)
-  * Spanish
+[% translations -%]
+[% END -%]
 
 Partial translations are available for various other languages.
 
