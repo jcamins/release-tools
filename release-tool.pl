@@ -115,6 +115,7 @@ my $signed_tarball  = 'no';
 my $signed_packages = 'no';
 my $tagged          = 'no';
 my $cleaned         = 'no';
+my $pushed          = 'no';
 my $skipped         = '';
 my $finished_tests  = 'no';
 my $built_tarball   = 'no';
@@ -173,6 +174,10 @@ Sign the tarball and package and tag (if created)
 =item B<--tag, -g>
 
 Tag the git repository
+
+=item B<--push, -p>
+
+Push the branch to the specified remote(s).
 
 =item B<--skip-THING>
 
@@ -335,7 +340,7 @@ my $options = GetOptions(
 
     # Action control options
     'clean|c', 'deploy|d',
-    'release',
+    'push|p:s@', 'release',
     'sign|s', 'tag|g',
     'skip-tests',
     'skip-deb',        'skip-tgz',
@@ -748,6 +753,27 @@ if ( $config->param('tag') ) {
 
 generate_email() unless $config->param('skip-rnotes');
 
+if ( defined $config->param('push') ) {
+    foreach my $target ($config->param('push')) {
+        if ( $target =~ m/^([^:]*):(.*)$/ ) {
+            shell_task( "Pushing to branch $2 on remote $1",
+                "git push $1 " . $config->param('branch') . ":$2" );
+            if ( $config->param('tag') ) {
+                shell_task( "Pushing tag to remote $1",
+                    "git push $1 v" . $config->param('version') );
+            }
+        } else {
+            shell_task( "Pushing to default remote/branch",
+                "git push" );
+            if ( $config->param('tag') ) {
+                shell_task( "Pushing tag to default remote",
+                    "git push v" . $config->param('version') );
+            }
+        }
+    }
+    $pushed = 'yes';
+}
+
 my $configfile = build_result('summary.cfg');
 $config->write($configfile);
 
@@ -869,6 +895,7 @@ Built tarball:          $built_tarball
 Tested tarball install: $tested_tarball_install
 Signed tarball:         $signed_tarball
 Tagged git repository:  $tagged
+Pushed git branch:      $pushed
 Cleaned:                $cleaned
 Tarball file:           $tarball
 Package file:           $package
