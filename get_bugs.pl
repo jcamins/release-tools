@@ -167,7 +167,7 @@ if (scalar @bug_list) {
         if ($fields[1] =~ m/(blocker|critical|major)/) {
             $arguments{highlights} .= "$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
         }
-        elsif ($fields[1] =~ m/(normal|enhancement)/) {
+        elsif ($fields[1] =~ m/(normal|minor|trivial|enhancement)/) {
             $arguments{bugfixes} .= "$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
         }
     }
