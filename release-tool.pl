@@ -120,6 +120,7 @@ my $skipped         = '';
 my $finished_tests  = 'no';
 my $built_tarball   = 'no';
 my $built_packages  = 'no';
+my $version_mismatch;
 my $output;
 my $drh;
 my @tested_tarball_installs;
@@ -388,14 +389,6 @@ foreach my $key ( keys %cmdline ) {
     $config->param( $key, $cmdline{$key} );
 }
 
-if ( $cmdline{release} ) {
-    $config->param( 'sign',   1 );
-    $config->param( 'deploy', 1 );
-    $config->param( 'tag',    1 );
-    $config->param( 'tarball',
-        'koha-' . $config->param('version') . '.tar.gz' );
-}
-
 my $starttime = time();
 
 chdir $config->param('kohaclone')
@@ -413,8 +406,8 @@ push @marcflavours, 'NORMARC' unless $config->param('skip-normarc');
 
 set_default( 'branch', `git branch | grep '*' | sed -e 's/^* //' -e 's#/#-#'` );
 
-set_default( 'version',
-    `grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/';//"` );
+my $kohaversion = `grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/';//"`;
+set_default( 'version', $kohaversion );
 
 set_default( 'maintainer-name', `git config --global --get user.name` );
 
@@ -482,6 +475,10 @@ print_log( "\tBranch:  "
       . "\n\tVersion: "
       . $config->param('version')
       . "\n" );
+
+unless ( index $config->param('version'), $kohaversion ) {
+    $version_mismatch = 1;
+}
 
 unless ( $config->param('skip-tests') ) {
     tap_task(
@@ -833,6 +830,9 @@ sub clean_tgz {
 }
 
 sub clean_pkg_webinstall {
+    shell_task( "Stopping package Zebra daemon",
+        "sudo koha-stop-zebra pkgrel", 1 );
+    run_cmd( "ps ax | grep pkgrel | sed -e 's/ .*\$//' | grep -v grep | sudo xargs kill -9 2>&1 > /dev/null" );
     shell_task( "Cleaning up package install",
         "sudo koha-remove pkgrel  2>&1", 1 );
 }
@@ -903,6 +903,10 @@ Release notes:          $rnotes
 E-mail file:            $emailfile
 Summary config file:    $configfile
 _SUMMARY_
+
+    print colored( "Version mismatch between requested version " .
+      $config->param('version') . " and Koha version $kohaversion!", 'red' ), "\n"
+      if $version_mismatch;
 }
 
 sub success {
