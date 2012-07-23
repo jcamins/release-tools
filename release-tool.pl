@@ -80,16 +80,19 @@ my %defaults = (
     quiet                => 0,
     rnotes               => '',
     sign                 => 0,
+    since                => '',
     'skip-deb'           => 0,
     'skip-install'       => 0,
     'skip-marc21'        => 0,
     'skip-normarc'       => 0,
     'skip-pbuilder'      => 0,
     'skip-rnotes'        => 0,
+    'skip-stats'         => 0,
     'skip-tests'         => 0,
     'skip-tgz'           => 0,
     'skip-unimarc'       => 0,
     'skip-webinstall'    => 0,
+    stats                => '',
     tag                  => 0,
     tarball              => '',
     'tgz-install-dir'    => '',
@@ -217,6 +220,9 @@ Updating the pbuilder environment
 =item B<rnotes>
 Generating release notes
 
+=item B<stats>
+Generating git statistics
+
 =back
 
 =back
@@ -242,6 +248,11 @@ kohaversion.pl
 =item B<--autoversion, -a>
 
 Automatically include the git commit id and timestamp in the package version
+
+=item B<--since>
+
+Tag or commit from which to generate release notes and statistics. Defaults
+to last tag on branch.
 
 =back
 
@@ -299,6 +310,12 @@ File to store error information in. Defaults to [build-result]/errors.log
 The name of the release notes file to generate or use (see I<--use-dist-rnotes>).
 Defaults to [build-result]/release_notes.txt
 
+=item B<--stats>
+
+The base name of the files into which statistics should be placed.
+Defaults to [build-result]/statistics (statistics will be generated
+in .txt and .html format)
+
 =item B<--tarball, -t>
 
 The name of the tarball file to generate. Defaults to
@@ -348,12 +365,12 @@ my $options = GetOptions(
     'skip-install',    'skip-marc21',
     'skip-unimarc',    'skip-normarc',
     'skip-webinstall', 'skip-pbuilder',
-    'skip-rnotes',
+    'skip-rnotes',     'skip-stats',
 
     # Source description options
     'version=s', 'autoversion|a',
     'kohaclone|k=s',
-    'branch=s',
+    'branch=s', 'since=s',
 
     # Execution options
     'database=s',
@@ -365,6 +382,7 @@ my $options = GetOptions(
     # Output options
     'build-result|b=s', 'errorlog=s',
     'tarball|t=s',      'rnotes|r=s',
+    'stats=s',
 
     # Announcement options
     'email-file=s',
@@ -454,6 +472,13 @@ set_default(
 );
 
 set_default( 'rnotes', build_result('release_notes.txt') );
+
+set_default( 'stats', build_result('statistics') );
+
+my $lasttag = `git describe --abbrev=0`;
+chomp $lasttag;
+
+set_default( 'since', $lasttag );
 
 set_default( 'errorlog', build_result('errors.log') );
 
@@ -579,9 +604,22 @@ unless ( $config->param('skip-rnotes') || $config->param('use-dist-rnotes') ) {
     shell_task(
         "Generating release notes",
         "$reltools/get_bugs.pl -r "
-          . $config->param('rnotes') . " -v "
+          . $config->param('rnotes') . " -t "
+          . $config->param('since') . " -v "
           . $config->param('version')
           . " --verbose 2>&1"
+    );
+}
+
+system('which gitdm 2>&1 > /dev/null');
+$config->param('skip-stats', 1) if $?;
+unless ( $config->param('skip-stats') ) {
+    shell_task(
+        "Generating statistics",
+        "git log -p -M " . $config->param('since')
+          . "..HEAD | gitdm -b $reltools -c $reltools/gitdm.config -u -s -a -o "
+          . $config->param('stats') . ".txt -h "
+          . $config->param('stats') . ".html 2>&1"
     );
 }
 
