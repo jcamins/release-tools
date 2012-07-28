@@ -15,6 +15,7 @@
 # Released under GPL v2 or later
 # Grab the license from www.fsf.org
 #
+# 2012-07-28    JCE    Added noupdate parameter
 # 2012-07-28    MLT    Tested and debugged several cycles.
 # 2012-07-27    MLT    Began experimenting work on the apt-file
 #                      logic required to do apt-file's for
@@ -69,6 +70,7 @@ function usage {
    echo "~:    full: Can be 0 or 1. For verbose output use 1. To just list"
    echo "~:          missing files (0), that is the type 3 from above, are"
    echo "~:          listed to STDOUT."
+   echo "~:noupdate: Can be 0 or 1. If 1, do not update the apt-file indexes."
    echo "~:"
    echo "~: sample output line for found library:"
    echo "~:   Net::Z3950::ZOOM ~ libnet-z3950-zoom-perl: /usr/lib/perl5/Net/Z3950/ZOOM.pm"
