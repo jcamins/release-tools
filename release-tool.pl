@@ -65,6 +65,7 @@ $|                          = 1;
 $Term::ANSIColor::AUTORESET = 1;
 
 my %defaults = (
+    alert                => '',
     autoversion          => 0,
     branch               => '',
     'build-result'       => '',
@@ -130,6 +131,7 @@ my @tested_tarball_installs;
 my @tested_package_installs;
 my %cmdline;
 my $config = new Config::Simple( syntax => 'http' );
+my $log = '';
 
 =head2 General options
 
@@ -321,6 +323,10 @@ in .txt and .html format)
 The name of the tarball file to generate. Defaults to
 [build-result]/koha-[branch]-[version].tar.gz
 
+=item B<--alert>
+
+E-mail address to which an an alert summarizing the result should be sent.
+
 =back
 
 =head2 Announcement options
@@ -382,7 +388,7 @@ my $options = GetOptions(
     # Output options
     'build-result|b=s', 'errorlog=s',
     'tarball|t=s',      'rnotes|r=s',
-    'stats=s',
+    'stats=s', 'alert=s',
 
     # Announcement options
     'email-file=s',
@@ -876,6 +882,7 @@ sub clean_pkg_webinstall {
 }
 
 sub summary {
+    my ($capsule_summary) = @_;
     my $endtime = time();
     my $totaltime = ceil( ( $endtime - $starttime ) * 1000 );
     $starttime = strftime( '%D %T', localtime($starttime) );
@@ -912,8 +919,10 @@ sub summary {
     my $tarball    = $config->param('tarball');
     my $package    = $config->param('package');
     my $rnotes     = $config->param('rnotes');
+    my $stats      = $config->param('stats');
     my $emailfile  = $config->param('email-file');
-    print <<_SUMMARY_;
+    my $summary = <<_SUMMARY_;
+$capsule_summary
 
 Release test report
 =======================================================
@@ -938,19 +947,44 @@ Cleaned:                $cleaned
 Tarball file:           $tarball
 Package file:           $package
 Release notes:          $rnotes
+Statistics:             $stats\[.txt/.html\]
 E-mail file:            $emailfile
 Summary config file:    $configfile
 _SUMMARY_
 
-    print colored( "Version mismatch between requested version " .
-      $config->param('version') . " and Koha version $kohaversion!", 'red' ), "\n"
+    $summary .= colored( "Version mismatch between requested version " .
+      $config->param('version') . " and Koha version $kohaversion!", 'red' ) .  "\n"
       if $version_mismatch;
+    $summary .= $capsule_summary;
+
+    print $summary unless $config->param('quiet') > 1;
+
+    if ( $config->param('alert') ) {
+        $summary =~ s/\x1b\[[0-9]*m//g;
+        $summary .= "=======================================================\n\n";
+        my $msg = MIME::Lite->new(
+            From    => $config->param('maintainer-email'),
+            To      => $config->param('alert'),
+            Subject => 'Release tool completed',
+            Data    => $summary,
+            Type    => 'multipart/mixed'
+        );
+        $msg->attach(
+            Type    => 'text/plain',
+            Data    => $summary
+        );
+        $log =~ s/\x1b\[[0-9]*m//g;
+        $msg->attach(
+            Type     => 'text/plain',
+            Data     => $log,
+            Filename => 'release-tool.log'
+        );
+        $msg->send;
+    }
 }
 
 sub success {
-    summary();
-    print colored( "Successfully finished release test", 'green' ), "\n"
-      unless $config->param('quiet') > 1;
+    summary(colored( "Successfully finished release test", 'green' ) . "\n");
 
     exit 0;
 }
@@ -959,14 +993,8 @@ sub fail {
     my $component = shift;
     my $callback  = shift;
 
-    print colored( $component, 'bold red' ),
-      colored( " failed in release test", 'red' ), "\n"
-      unless $config->param('quiet') > 1;
-
-    summary();
-    print colored( $component, 'bold red' ),
-      colored( " failed in release test", 'red' ), "\n"
-      unless $config->param('quiet') > 1;
+    summary(colored( $component, 'bold red' ) . ' ' .
+      colored( " failed in release test", 'red' ) . "\n");
 
     if ($output) {
         open( my $errorlog, ">", $config->param('errorlog') )
@@ -985,6 +1013,7 @@ sub fail {
 }
 
 sub print_log {
+    $log .= join(' ', @_) . "\n";
     print @_, "\n" unless $config->param('quiet');
 }
 
@@ -1008,6 +1037,7 @@ sub tap_dir {
 
 sub run_cmd {
     my $command = shift;
+    $log .= "> $command\n";
     print colored( "> $command\n", 'cyan' )
       if ( $config->param('verbose') >= 1 );
     my $pid = open( my $outputfh, "-|", "$command" )
@@ -1017,6 +1047,7 @@ sub run_cmd {
         $output .= $_;
     }
     close($outputfh);
+    $log .= $output . "\n";
 }
 
 sub shell_task {
@@ -1058,6 +1089,7 @@ sub tap_task {
             $command .= "$test ";
         }
         print colored( "> $command\n", 'cyan' );
+        $log .= "> $command\n";
     }
 
     my $pid = open( my $testfh, '-|' ) // die "Can't fork to run tests: $!\n";
@@ -1066,6 +1098,7 @@ sub tap_task {
             print $_ if ( $config->param('verbose') >= 2 );
             $output .= $_;
         }
+        $log .= $output . "\n";
         waitpid( $pid, 0 );
         fail( $message, $callback ) if ($?);
         close($testfh);
