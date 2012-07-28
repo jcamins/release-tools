@@ -42,6 +42,7 @@ function usage {
    echo "~:Usage: $tprogram [--koha-dir=<path>] [--list-dir=<path>] "
    echo "~:                 [--dist=<dist>] [--release=<release>] "
    echo "~:                 [--file=<file>] [--full=<full>]"
+   echo "~:                 [--noupdate=<noupdate>]"
    echo "~:"
    echo "~:koha-dir: The directory in which koha_perl_deps.pl is located."
    echo "~:          the default is \`dirname $tprogram\`."
