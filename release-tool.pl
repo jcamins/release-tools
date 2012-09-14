@@ -423,6 +423,7 @@ my $reltools = File::Spec->rel2abs( dirname(__FILE__) );
 $config->param( 'kohaclone', File::Spec->rel2abs( File::Spec->curdir() ) )
   unless ( $config->param('kohaclone') && -d $config->param('kohaclone') );
 
+$ENV{PERL5LIB} = $config->param('kohaclone');
 my @marcflavours;
 push @marcflavours, 'MARC21'  unless $config->param('skip-marc21');
 push @marcflavours, 'UNIMARC' unless $config->param('skip-unimarc');
@@ -607,14 +608,16 @@ unless ( $config->param('skip-tgz') ) {
 }
 
 unless ( $config->param('skip-rnotes') || $config->param('use-dist-rnotes') ) {
-    shell_task(
-        "Generating release notes",
+    print_log("Generating release notes...");
+    run_cmd(
         "$reltools/get_bugs.pl -r "
           . $config->param('rnotes') . " -t "
           . $config->param('since') . " -v "
           . $config->param('version')
           . " --verbose 2>&1"
-    );
+          );
+    warn colored( "Error generating release notes. Continuing anyway.",
+            'bold red' ) if ($?);
 }
 
 system('which gitdm 2>&1 > /dev/null');
