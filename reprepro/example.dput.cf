@@ -1,0 +1,5 @@
+[koha]
+method = local
+incoming = /home/jcamins/repos/apt/koha/incoming
+run_dinstall = 0
+post_upload_command = reprepro -b /home/jcamins/repos/apt/koha processincoming default

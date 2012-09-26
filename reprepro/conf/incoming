@@ -1,0 +1,5 @@
+Name: default
+IncomingDir: incoming
+TempDir: incoming.temp
+Allow: 3.6.x 3.6-testing dependencies
+Permit: older_version

@@ -1,0 +1,33 @@
+Origin: Koha
+Label: Koha
+Codename: 3.6.x
+Suite: 3.6.x
+Architectures: source i386 amd64
+Components: main
+Description: Production ready packages for Koha's "old stable" branch
+Contents: . .gz
+Log:
+ --type=dsc changelogs.example
+
+Origin: Koha
+Label: Koha
+Codename: 3.6-testing
+Suite: 3.6-testing
+Architectures: source i386 amd64
+Components: main
+Description: Testing packages for Koha's "old stable" branch
+Contents: . .gz
+Log:
+ --type=dsc changelogs.example
+
+Origin: Koha
+Label: Koha dependencies
+Codename: dependencies
+Suite: dependencies
+Architectures: source i386 amd64
+Components: main
+Description: Packages for various Koha dependencies not available elsewhere
+Contents: . .gz
+AlsoAcceptFor: unstable
+Log:
+ --type=dsc changelogs.example
