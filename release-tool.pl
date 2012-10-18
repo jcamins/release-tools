@@ -53,6 +53,7 @@ use DBI;
 use MIME::Lite;
 use Template;
 use Config::Simple;
+use Net::OpenSSH;
 
 $SIG{INT} = \&interrupt;
 
@@ -96,15 +97,14 @@ my %defaults = (
     stats                => '',
     tag                  => 0,
     tarball              => '',
-    'tgz-install-dir'    => '',
     'use-dist-rnotes'    => 0,
     verbose              => 0,
     version              => '',
 
     # database settings
-    database => $ENV{KOHA_DATABASE} || 'koharel',
-    user     => $ENV{KOHA_USER}     || 'koharel',
-    password => $ENV{KOHA_PASS}     || 'koharel',
+    database => $ENV{KOHA_DATABASE} || 'koha',
+    user     => $ENV{KOHA_USER}     || 'kohaadmin',
+    password => $ENV{KOHA_PASS}     || 'katikoan',
 
     # announcement settings
     'email-template' => 'announcement.eml.tt',
@@ -126,12 +126,12 @@ my $built_tarball   = 'no';
 my $built_packages  = 'no';
 my $version_mismatch;
 my $output;
-my $drh;
 my @tested_tarball_installs;
 my @tested_package_installs;
 my %cmdline;
 my $config = new Config::Simple( syntax => 'http' );
 my $log = '';
+my $lxc_host = '';
 
 =head2 General options
 
@@ -489,8 +489,6 @@ set_default( 'since', $lasttag );
 
 set_default( 'errorlog', build_result('errors.log') );
 
-set_default( 'tgz-install-dir', build_result('fresh') );
-
 unlink $config->param('tarball');
 unlink $config->param('rnotes') unless $config->param('use-dist-rnotes');
 unlink $config->param('errorlog');
@@ -533,7 +531,7 @@ unless ( $config->param('skip-tests') ) {
 unless ( $config->param('skip-deb') ) {
     unless ( $config->param('skip-pbuilder') ) {
         print_log("Updating pbuilder...");
-        run_cmd("sudo pbuilder update 2>&1");
+        run_cmd("sudo pbuilder update --keyring '$reltools/debian.koha-community.org.gpg' 2>&1");
         warn colored( "Error updating pbuilder. Continuing anyway.",
             'bold red' )
           if ($?);
@@ -633,36 +631,25 @@ unless ( $config->param('skip-stats') ) {
 }
 
 unless ( $config->param('skip-deb') || $config->param('skip-install') ) {
-    shell_task( "Installing package...",
-        "sudo dpkg -i " . $config->param('package') . " 2>&1" );
-    run_cmd('sudo koha-remove pkgrel  2>&1');
-
-    open( my $koha_sites, '>', '/tmp/koha-sites.conf' );
-    print $koha_sites <<EOF;
-OPACPORT=9003
-INTRAPORT=9004
-EOF
-    close $koha_sites;
-    run_cmd('sudo mv /tmp/koha-sites.conf /etc/koha/koha-sites.conf');
-
     for my $flavour (@marcflavours) {
         my $lflavour = lc $flavour;
-        print_log("Installing from package for $flavour...");
 
-        shell_task( "Running koha-create for $flavour",
-            "sudo koha-create --marcflavor=$lflavour --create-db pkgrel 2>&1",
+        print_log("Installing from package for $flavour...");
+        my ($lxc_ip, $ssh) = create_lxc();
+        ssh_task( $ssh, "Downloading package...", "wget -nv http://10.0.3.1" . $config->param('package') . ' 2>&1', '', 1 );
+        ssh_task( $ssh, "Installing package...", "sudo dpkg --no-debsig -i " . basename($config->param('package')) . ' 2>&1; sudo apt-get -y -f install 2>&1', '', 1 );
+        ssh_task( $ssh, "Running koha-create for $flavour",
+            "sudo koha-create --marcflavor=$lflavour --create-db pkgrel 2>&1", '',
             1 );
 
         unless ( $config->param('skip-webinstall') ) {
-            my $pkg_user =
-`sudo xmlstarlet sel -t -v 'yazgfs/config/user' '/etc/koha/sites/pkgrel/koha-conf.xml'`;
-            my $pkg_pass =
-`sudo xmlstarlet sel -t -v 'yazgfs/config/pass' '/etc/koha/sites/pkgrel/koha-conf.xml'`;
+            my $pkg_user = $ssh->capture("sudo xmlstarlet sel -t -v 'yazgfs/config/user' '/etc/koha/sites/pkgrel/koha-conf.xml'");
+            my $pkg_pass = $ssh->capture("sudo xmlstarlet sel -t -v 'yazgfs/config/pass' '/etc/koha/sites/pkgrel/koha-conf.xml'");
             chomp $pkg_user;
             chomp $pkg_pass;
             my $harness_args = {
                 test_args => [
-                    "http://localhost:9004", "http://localhost:9003",
+                    "http://$lxc_ip:8080", "http://$lxc_ip",
                     "$flavour",              "$pkg_user",
                     "$pkg_pass"
                 ]
@@ -671,9 +658,9 @@ EOF
                 1, $harness_args, "$reltools/install-fresh.pl" );
 
             push @tested_package_installs, $flavour;
-
-            clean_pkg_webinstall();
         }
+    clean_lxc();
+    $lxc_host = '';
     }
 }
 
@@ -691,96 +678,44 @@ if ( $config->param('deploy') && !$config->param('skip-deb') ) {
 }
 
 unless ( $config->param('skip-tgz') || $config->param('skip-install') ) {
-    $drh = DBI->install_driver("mysql");
     for my $flavour (@marcflavours) {
         my $lflavour = lc $flavour;
         print_log("Installing from tarball for $flavour...");
-        $ENV{INSTALL_BASE}        = build_result('fresh/koha');
-        $ENV{DESTDIR}             = build_result('fresh');
-        $ENV{KOHA_CONF_DIR}       = build_result('fresh/etc');
-        $ENV{ZEBRA_CONF_DIR}      = build_result('fresh/etc/zebradb');
-        $ENV{PAZPAR2_CONF_DIR}    = build_result('fresh/etc/pazpar2');
-        $ENV{ZEBRA_LOCK_DIR}      = build_result('fresh/var/lock/zebradb');
-        $ENV{ZEBRA_DATA_DIR}      = build_result('fresh/var/lib/zebradb');
-        $ENV{ZEBRA_RUN_DIR}       = build_result('fresh/var/run/zebradb');
-        $ENV{LOG_DIR}             = build_result('fresh/var/log');
-        $ENV{INSTALL_MODE}        = "standard";
-        $ENV{DB_TYPE}             = "mysql";
-        $ENV{DB_HOST}             = "localhost";
-        $ENV{DB_NAME}             = $config->param('database');
-        $ENV{DB_USER}             = $config->param('user');
-        $ENV{DB_PASS}             = $config->param('password');
-        $ENV{INSTALL_ZEBRA}       = "yes";
-        $ENV{INSTALL_SRU}         = "no";
-        $ENV{INSTALL_PAZPAR2}     = "no";
-        $ENV{ZEBRA_MARC_FORMAT}   = "$lflavour";
-        $ENV{ZEBRA_LANGUAGE}      = "en";
-        $ENV{ZEBRA_USER}          = "kohauser";
-        $ENV{ZEBRA_PASS}          = "zebrastripes";
-        $ENV{KOHA_USER}           = "`id -u -n`";
-        $ENV{KOHA_GROUP}          = "`id -g -n`";
-        $ENV{PERL_MM_USE_DEFAULT} = "1";
-        mkdir $config->param('tgz-install-dir');
-        shell_task( "Untarring tarball for $flavour",
-            "tar zxvf " . $config->param('tarball') . " -C /tmp 2>&1", 1 );
-        chdir '/tmp/koha-' . $config->param('version');
 
-        shell_task( "Running perl Makefile.PL for $flavour",
-            "perl Makefile.PL 2>&1", 1 );
+        my ($lxc_ip, $ssh) = create_lxc();
+        my $subdir = 'koha-' . $config->param('version');
+        ssh_task( $ssh, "Downloading tarball...", "wget -nv http://10.0.3.1" . $config->param('tarball') . ' 2>&1', '', 1 );
+        ssh_task( $ssh, "Untarring tarball...", "tar zxvf " . basename($config->param('tarball')) . ' 2>&1', '', 1 );
+        ssh_task( $ssh, "Installing dependencies...", "sudo apt-get -y install `cat install_misc/ubuntu.12.04.packages | grep install | sed -e 's/install\$//' | tr -d ' \\t' | tr '\\n' ' '` 2>&1", $subdir, 1 );
+        my $env_vars = "DB_HOST=localhost DB_NAME=" . $config->param('database') . " DB_USER=" . $config->param('user') . " DB_PASS=" . $config->param('password') . " ZEBRA_MARC_FORMAT=$lflavour PERL_MM_USE_DEFAULT=1";
+        ssh_task( $ssh, "Running perl Makefile.PL for $flavour",
+            "$env_vars perl Makefile.PL 2>&1", $subdir, 1 );
+        ssh_task( $ssh, "Running make for $flavour...", "make 2>&1", $subdir, 1 );
 
-        shell_task( "Running make for $flavour...", "make 2>&1", 1 );
+        ssh_task( $ssh, "Rewriting Apache config for $flavour",
+            "sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:80>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:8080>/' blib/KOHA_CONF_DIR/koha-httpd.conf",
+            $subdir, 1 );
 
-        shell_task( "Running make test for $flavour...", "make test 2>&1", 1 );
-
-        shell_task( "Running make install for $flavour...",
-            "make install 2>&1", 1 );
-
-        run_cmd(
-"sed -i -e 's/<VirtualHost 127.0.1.1:80>/<VirtualHost *:9001>/' -e 's/<VirtualHost 127.0.1.1:8080>/<VirtualHost *:9002>/' "
-              . build_result('fresh/etc/koha-httpd.conf') );
+        ssh_task( $ssh, "Running make test for $flavour...", "make test 2>&1", $subdir, 1 );
+        ssh_task( $ssh, "Running make install for $flavour...",
+            "sudo make install 2>&1", $subdir, 1 );
+        ssh_task( $ssh, "Linking and loading Apache site for $flavour...", "sudo ln -s /etc/koha/koha-httpd.conf /etc/apache2/sites-available/koha && sudo a2ensite koha && sudo apache2ctl restart", '', 1 );
 
         unless ( $config->param('skip-webinstall') ) {
-            clean_tgz_webinstall();
-            print_log(" Creating database for $flavour...");
-            $drh->func(
-                'createdb', $config->param('database'),
-                'localhost',
-                $config->param('user'),
-                $config->param('password'), 'admin'
-            ) or fail("Creating database for $flavour");
-
-            shell_task(
-                "Adding to sites-available for $flavour",
-                "sudo ln -s "
-                  . build_result('/fresh/etc/koha-httpd.conf')
-                  . " /etc/apache2/sites-available/release-fresh 2>&1",
-                1
-            );
-
-            shell_task( "Enabling site for $flavour",
-                "sudo a2ensite release-fresh 2>&1", 1 );
-
-            shell_task( "Restarting Apache for $flavour",
-                "sudo apache2ctl restart 2>&1", 1 );
-
             my $harness_args = {
                 test_args => [
-                    "http://localhost:9002", "http://localhost:9001",
-                    "$flavour",              $config->param('user'),
+                    "http://$lxc_ip:8080", "http://$lxc_ip",
+                    "$flavour",            $config->param('user'),
                     $config->param('password')
                 ]
             };
             tap_task( "Running webinstaller for $flavour",
                 1, $harness_args, "$reltools/install-fresh.pl" );
 
-            clean_tgz_webinstall();
-            clean_tgz();
             push @tested_tarball_installs, $flavour;
         }
-        else {
-            clean_tgz();
-        }
-
+        clean_lxc();
+        $lxc_host = '';
     }
 }
 
@@ -829,8 +764,7 @@ if ( $config->param('deploy') && $config->param('post-deploy-script') ) {
 }
 
 if ( $config->param('clean') ) {
-    clean_tgz_webinstall();
-    clean_tgz();
+    clean_lxc();
     remove_tree( $config->param('build-result') );
     $cleaned = 'yes';
 }
@@ -855,33 +789,8 @@ sub set_default {
     $config->param( $key, $value ) unless $config->param($key);
 }
 
-sub clean_tgz_webinstall {
-    print_log(" Cleaning up tarball install...");
-    $drh->func(
-        'dropdb', $config->param('database'),
-        'localhost',
-        $config->param('user'),
-        $config->param('password'), 'admin'
-    );
-    run_cmd("sudo a2dissite release-fresh 2>&1");
-    run_cmd("sudo apache2ctl restart 2>&1");
-    run_cmd("sudo rm /etc/apache2/sites-available/release-fresh 2>&1");
-}
-
-sub clean_tgz {
-    chdir( $config->param('kohaclone') );
-    remove_tree(
-        '/tmp/koha-' . $config->param('version'),
-        $config->param('tgz-install-dir')
-    );
-}
-
-sub clean_pkg_webinstall {
-    shell_task( "Stopping package Zebra daemon",
-        "sudo koha-stop-zebra pkgrel", 1 );
-    run_cmd( "ps ax | grep pkgrel | sed -e 's/ .*\$//' | grep -v grep | sudo xargs kill -9 2>&1 > /dev/null" );
-    shell_task( "Cleaning up package install",
-        "sudo koha-remove pkgrel  2>&1", 1 );
+sub clean_lxc {
+    shell_task( "Shutting down lxc container...", "sudo lxc-stop -n $lxc_host", 1 ) if $lxc_host;
 }
 
 sub summary {
@@ -1038,6 +947,33 @@ sub tap_dir {
     return sort @tests;
 }
 
+sub create_lxc {
+    # Sorry, creating the lxc container sucks. Deal with it.
+    print_log(" Creating lxc container...");
+    my $command = "sudo lxc-start-ephemeral -d -o ubuntu";
+    $log .= "> $command\n";
+    print colored( "> $command\n", 'cyan' )
+        if ( $config->param('verbose') >= 1 );
+    my $pid = open( my $outputfh, "-|", "$command" )
+        or die "Unable to run $command\n";
+    while (<$outputfh>) {
+        print $_ if ( $config->param('verbose') >= 2 );
+        $output .= $_;
+        if ($_ =~ /^([^ ]*) is running/) {
+            $lxc_host = $1;
+            last;
+        }
+    }
+    close($outputfh);
+
+    my $lxc_ip = `host -s $lxc_host 10.0.3.1 | grep 'has address' | sed -e 's/^.*has address //'`;
+    chomp($lxc_ip);
+    print_log(" Connecting to lxc container...");
+    my $ssh = Net::OpenSSH->new("ubuntu\@$lxc_ip", master_opts => [-o => "StrictHostKeyChecking=no"]);
+
+    return ($lxc_ip, $ssh);
+}
+
 sub run_cmd {
     my $command = shift;
     $log .= "> $command\n";
@@ -1064,6 +1000,32 @@ sub shell_task {
     $output = '';
     run_cmd($command);
     fail( $message, $callback ) if ($?);
+}
+
+sub ssh_task {
+    my $ssh = shift;
+    my $message = shift;
+    my $command = shift;
+    my $dir = shift;
+    my $callback;
+    $callback = pop @_ if ( $#_ && ref $_[$#_] eq 'CODE' );
+    my $subtask = shift || 0;
+    my $logmsg = ( ' ' x $subtask ) . $message;
+    print_log("$logmsg...");
+    $command = "cd $dir && $command" if $dir;
+    $log .= "> $command\n";
+    print colored( "> $command\n", 'cyan' )
+      if ( $config->param('verbose') >= 1 );
+    $output = '';
+    my ($outputfh, $pid) = $ssh->pipe_out($command);
+    die "Unable to run $command\n" unless $pid;
+    while (<$outputfh>) {
+        print $_ if ( $config->param('verbose') >= 2 );
+        $output .= $_;
+    }
+    close($outputfh);
+    $log .= $output . "\n";
+    fail( $message, $callback ) if ($ssh->error);
 }
 
 sub tap_task {
@@ -1182,11 +1144,52 @@ one, you can use the following command:
 
     sudo pbuilder create \
         --othermirror 'deb http://debian.koha-community.org/koha squeeze main' \
-        --mirror http://ftp.debian.org/debian
+        --mirror http://ftp.debian.org/debian \
+        --keyring '${release-tools-repo}/debian.koha-community.org.gpg'
+
+=head1 LXC CONFIGURATION
+
+Testing the Koha installation process requires an LXC container called "ubuntu"
+configured with the following features:
+
+=over 8
+
+=item Ubuntu Precise chosen as the distro
+
+=item The following line in the sudoers file:
+
+    ubuntu  ALL=NOPASSWD: /usr/bin/make, /usr/bin/apt-get, /sbin/poweroff, \
+    /bin/ln, /usr/sbin/apache2ctl, /usr/sbin/a2ensite, /usr/bin/dpkg, \
+    /usr/sbin/koha-create, /usr/bin/xmlstarlet
+
+=item The current user's SSH key must be in /home/ubuntu/.ssh/authorized_keys2
+in the container.
+
+=item mysql-server must be installed and a database and user created for the
+tarball installation.
+
+=item You must make your build result directory available via HTTP on the
+lxcbr interface. A configuration similar to the one nginx configuration below
+is recommended:
+
+    server {
+        listen 10.0.3.1:80;
+        server_name 10.0.3.1;
+        root /var/www;
+
+        location /home/jcamins/releases {
+            alias /home/jcamins/releases;
+        }
+    }
+
+=item An apt cache set up with apt-cacher-ng is recommended to speed up the
+process.
+
+=back
 
 =head1 SEE ALSO
 
-L<dch(1)>, L<dput(1)>, L<pbuilder(8)>, L<reprepro(1)>
+L<dch(1)>, L<dput(1)>, L<lxc(7)>, L<pbuilder(8)>, L<reprepro(1)>
 
 =head1 AUTHOR
 
