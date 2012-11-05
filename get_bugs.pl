@@ -52,6 +52,7 @@ my $rnotes      = undef;
 my $commit_changes  = 0;
 my $help        = 0;
 my $verbose     = 0;
+my $html        = 0; # if set, will create a HTML version of the release notes
 
 GetOptions(
     't|tag:s'       => \$tag,
@@ -60,6 +61,7 @@ GetOptions(
     'r|rnotes:s'    => \$rnotes,
     'v|version:s'   => \$version,
     'c|commit'      => \$commit_changes,
+    'h|html'        => \$html,
     'help|?'        => \$help,
     'verbose'       => \$verbose,
 );
@@ -90,8 +92,8 @@ $arguments{expandedversion} = "$major.$expanded_minor.$expanded_release";
 $arguments{expandedversion} .= "$additional" if ($additional);
 $arguments{line} = "$major." . ($minor % 2 ? $minor + 1 : $minor);
 
-$template    = "release_notes_tmpl.tt" unless $template;
-$rnotes      = "misc/release_notes/release_notes_${major}_${minor}_${release}.txt" unless $rnotes;
+$template    = "release_notes_tmpl".($html?"_html":"").".tt" unless $template;
+$rnotes      = "misc/release_notes/release_notes_${major}_${minor}_${release}.".($html?"html":"txt") unless $rnotes;
 
 my $pootle = "http://translate.koha-community.org/projects/$major$minor/";
 $pootle = "http://translate.koha-community.org/" unless defined(get($pootle));

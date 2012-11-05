@@ -1,0 +1,106 @@
+<h1>RELEASE NOTES FOR KOHA [% shortversion %]</h1>
+<p>[% date %]</p>
+
+Koha is the first free and open source software library automation package  (ILS). Development is sponsored by libraries of varying types and sizes,  volunteers, and support companies from around the world.
+The website for the Koha project is <a href="http://koha-community.org/">http://koha-community.org</a> and Koha [% shortversion %] can be downloaded from: <a href="[% downloadlink %]">[% downloadlink %]</a>
+
+Installation instructions can be found at <a href="http://wiki.koha-community.org/wiki/Installation_Documentation">http://wiki.koha-community.org/wiki/Installation_Documentation</a> or in the INSTALL files that come in the tarball
+
+Koha [% shortversion %] is a bugfix/maintenance release.
+
+[%- IF highlights %]
+<h3>Highlights of [% shortversion %]</h3>
+
+[% highlights %]
+[% END -%]
+
+[%- IF bugfixes %]
+<h3>Bugs fixed in [% shortversion %]</h3>
+
+[% bugfixes %]
+[% END -%]
+
+[%- IF enhancement %]
+<h3>Enhancements in [% shortversion %]</h3>
+
+[% enhancement %]
+[% END -%]
+
+[%- IF sysprefs %]
+<h3>New sysprefs in [% shortversion %]</h3>
+
+[% sysprefs %]
+[% END %]
+<h3>System requirements</h3>
+
+    Important notes:
+    
+    * Perl 5.10 is required
+    * Zebra is required
+
+
+<h3>Documentation</h3>
+
+As of Koha 3.2, the Koha manual is now maintained in DocBook.  The
+home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a>
+
+As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% line %]/en/</a>
+
+The Git repository for the Koha manual can be found at  <a href="http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary">http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary</a>
+
+[%- IF translations %]
+<h3>Translations</h3>
+
+Complete or near-complete translations of the OPAC and staff interface are available in this release for the following languages:
+
+[% translations -%]
+[% END -%]
+
+Partial translations are available for various other languages.
+
+The Koha team welcomes additional translations; please see <a href="http://wiki.koha-community.org/wiki/Translating_Koha">http://wiki.koha-community.org/wiki/Translating_Koha</a>
+
+For information about translating Koha, and join the <a href="http://lists.koha-community.org/cgi-bin/mailman/listinfo/koha-translate">koha-translate list</a> to volunteer 
+
+The most up-to-date translations can be found at <a href="http://translate.koha-community.org/">http://translate.koha-community.org</a>
+
+[%- IF releaseteam %]
+<h3>Release Team</h3>
+
+The release team for Koha [% line %] is
+
+[% INSERT $releaseteam %]
+[% END -%]
+<h3>Credits</h3>
+
+[% IF sponsors %]
+We thank the following libraries who are known to have sponsored new features in Koha [% line %]:
+[% sponsors -%]
+[% END -%]
+
+[%- IF contributors %]
+We thank the following individuals who contributed patches to Koha [% shortversion %].
+[% contributors %]
+[% END -%]
+
+[%- IF signers %]
+We also especially thank the following individuals who tested patches for Koha [% shortversion %].
+
+[% signers %]
+[% END -%]
+We regret any omissions.  If a contributor has been inadvertantly missed, please send a patch against these release notes to  koha-patches@lists.koha-community.org.
+
+<h3>Revision control notes</h3>
+
+The Koha project uses Git for version control.  The current development version of Koha can be retrieved by checking out the master branch of <a href="git://git.koha-community.org/koha.git">git://git.koha-community.org/koha.git</a>
+
+The branch for this version of Koha and future bugfixes in this release line is [% branch %].
+
+The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
+
+<h3>Bugs and feature requests</h3>
+
+Bug reports and feature requests can be filed at the Koha bugi tracker at <a href="http://bugs.koha-community.org/">http://bugs.koha-community.org</a>
+
+Ehara taku toa i te toa takitahi, engari he toa takitini 
+[% timestamp %]
