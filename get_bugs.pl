@@ -147,9 +147,9 @@ print "Found " . scalar @bug_list . " bugs in this search\n\n" if $verbose;
 # http://bugs.koha-community.org/bugzilla3/buglist.cgi?bug_id=2629%2C2847%2C3958%2C4161%2C5150%2C5885%2C5945%2C5974%2C6390%2C6471%2C6475%2C6628%2C6629%2C6679%2C6799%2C6895%2C6955%2C6963%2C6977%2C6989%2C6994%2C7061%2C7069%2C7076%2C7084%2C7085%2C7095%2C7117%2C7128%2C7134%2C7138%2C7146%2C7184%2C7185%2C7188%2C7207%2C7221&bug_id_type=anyexact&query_format=advanced&ctype=csv
 
 if (scalar @bug_list) {
-    my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=bug_severity%2Cbug_id&bug_id=";
+    my $url = "http://bugs.koha-community.org/bugzilla3/buglist.cgi?order=component%2Cbug_severity%2Cbug_id&bug_id=";
     $url .= join '%2C', @bug_list;
-    $url .= "&bug_id_type=anyexact&query_format=advanced&ctype=csv&columnlist=bug_severity%2Cshort_desc";
+    $url .= "&bug_id_type=anyexact&query_format=advanced&ctype=csv&columnlist=bug_severity%2Cshort_desc%2Ccomponent";
 
     print "URL: $url\n" if $verbose;
 
@@ -165,10 +165,10 @@ if (scalar @bug_list) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
         if ($fields[1] =~ m/(blocker|critical|major)/) {
-            $arguments{highlights} .= "$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
+            $arguments{highlights} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
         }
         elsif ($fields[1] =~ m/(normal|minor|trivial|enhancement)/) {
-            $arguments{bugfixes} .= "$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
+            $arguments{bugfixes} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
         }
     }
 }
