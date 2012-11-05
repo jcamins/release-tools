@@ -160,15 +160,30 @@ if (scalar @bug_list) {
     $csv->parse(shift @csv_file);
     my @columns = $csv->fields;
 
-
+    # the current component for the 3 cases (highlights, bugfixes, enhancements)
+    my ($current_highlight,$current_bugfixes,$current_enhancement) = ('','','');
     while (scalar @csv_file) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
         if ($fields[1] =~ m/(blocker|critical|major)/) {
+            if ($fields[3] ne $current_highlight) {
+                $arguments{highlights} .= "\n$fields[3]\n----------\n";
+                $current_highlight=$fields[3];
+            }
             $arguments{highlights} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
         }
-        elsif ($fields[1] =~ m/(normal|minor|trivial|enhancement)/) {
+        elsif ($fields[1] =~ m/(normal|minor|trivial)/) {
+            if ($fields[3] ne $current_bugfixes) {
+                $arguments{bugfixes} .= "\n$fields[3]\n----------\n";
+                $current_bugfixes=$fields[3];
+            }
             $arguments{bugfixes} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
+        } else { # enhancements
+            if ($fields[3] ne $current_enhancement) {
+                $arguments{enhancement} .= "\n$fields[3]\n----------\n";
+                $current_enhancement=$fields[3];
+            }
+            $arguments{enhancement} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
         }
     }
 }

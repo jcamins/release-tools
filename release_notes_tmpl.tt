@@ -35,6 +35,13 @@ Bugs fixed in [% shortversion %]
 [% bugfixes %]
 [% END -%]
 
+[%- IF enhancement %]
+Enhancements in [% shortversion %]
+======================
+
+[% enhancement %]
+[% END -%]
+
 [%- IF sysprefs %]
 New sysprefs in [% shortversion %]
 ======================
