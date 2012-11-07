@@ -112,7 +112,7 @@ while ($translationpage =~ m#<td class="language">\W*<a[^>]*>([^<]*)</a>\W*</td>
 
 $arguments{translations} = \@translations;
 
-$arguments{releaseteam} = "release_team_$arguments{line}.tt";
+$arguments{releaseteam} = "release_team_$arguments{line}".($html?'_html':'').".tt";
 
 print "Using template: $template and release notes file: $rnotes\n\n";
 
