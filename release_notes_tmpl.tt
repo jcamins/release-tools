@@ -75,7 +75,7 @@ home page for Koha documentation is
 As of the date of these release notes, only the English version of the
 Koha manual is available:
 
-    http://manual.koha-community.org/[% line %]/en/
+    http://manual.koha-community.org/[% shortversion %]/en/
 
 The Git repository for the Koha manual can be found at
 
@@ -111,7 +111,7 @@ The most up-to-date translations can be found at:
 Release Team
 ======================
 
-The release team for Koha [% line %] is
+The release team for Koha [% shortversion %] is
 
 [% INSERT $releaseteam %]
 [% END %]
@@ -120,7 +120,7 @@ Credits
 
 [% IF sponsors %]
 We thank the following libraries who are known to have sponsored
-new features in Koha [% line %]:
+new features in Koha [% shortversion %]:
 [% FOREACH sponsor IN sponsors %]  * [% sponsor.name %][% END %]
 [% END %]
 
@@ -148,8 +148,7 @@ version of Koha can be retrieved by checking out the master branch of
 
     git://git.koha-community.org/koha.git
 
-The branch for this version of Koha and future bugfixes in this release
-line is [% branch %].
+The branch for this version of Koha and future bugfixes in this release line is [% branch %].
 
 The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
 

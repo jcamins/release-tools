@@ -58,7 +58,7 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 <h3>Documentation</h3>
 
 <p>As of Koha 3.2, the Koha manual is now maintained in DocBook.  The home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a></p>
-<p>As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% line %]/en/</a></p>
+<p>As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% shortversion %]/en/</a></p>
 <p>The Git repository for the Koha manual can be found at  <a href="http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary">http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary</a></p>
 
 [%- IF translations %]
