@@ -69,12 +69,13 @@ GetOptions(
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
 
-my $tt = Template->new(
+my $tt;
+$tt = Template->new(
         {
         INCLUDE_PATH => File::Spec->rel2abs( dirname(__FILE__) ),
-        ENCODING => 'utf8'
+        ENCODING => 'utf8',
         }
-    );
+    ) || die $tt->error(), "\n";
 my %arguments;
 
 die "No usable version" unless $version =~ m/(\d)\.(\d\d)\.(\d\d)(\.\d+)?(-\w*)?/g;
@@ -99,17 +100,17 @@ my $pootle = "http://translate.koha-community.org/projects/$major$minor/";
 $pootle = "http://translate.koha-community.org/" unless defined(get($pootle));
 
 my $translationpage = get($pootle);
-my @translations = ( 'English (USA)' );
+my @translations = ( {language => 'English (USA)'} );
 
 while ($translationpage =~ m#<td class="stats-name">\W*<a[^>]*>([^<]*)</a>\W*</td>\W*<td class="stats-graph">\W*<div class="sortkey">([0-9]*)<#g) {
-    push @translations, "$1 ($2%)" if ($2 > 50);
+    push @translations, {language => "$1 ($2%)"} if ($2 > 50);
 }
 
 while ($translationpage =~ m#<td class="language">\W*<a[^>]*>([^<]*)</a>\W*</td>\W*<td>\W*<div class="sortkey">([0-9]*)<#g) {
-    push @translations, "$1 ($2%)" if ($2 > 50);
+    push @translations, {language => "$1 ($2%)" } if ($2 > 50);
 }
 
-$arguments{translations} = '  * ' . join("\n  * ", sort(@translations)) . "\n" if @translations;
+$arguments{translations} = \@translations;
 
 $arguments{releaseteam} = "release_team_$arguments{line}.tt";
 
@@ -163,31 +164,48 @@ if (scalar @bug_list) {
     my @columns = $csv->fields;
 
     # the current component for the 3 cases (highlights, bugfixes, enhancements)
-    my ($current_highlight,$current_bugfixes,$current_enhancement) = ('','','');
+    my ($current_highlight,$current_bugfix,$current_enhancement) = ('','','');
+    #The lists of highlights, bugfixes and enhancement
+    # the component_xxx contains an array of hash reset for each component
+    # the xxx contains an array of hash with component & component_xxx array of hash
+    my (@component_highlights,@highlights);
+    my (@component_bugfixes,@bugfixes);
+    my (@component_enhancements,@enhancements);
     while (scalar @csv_file) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
         if ($fields[1] =~ m/(blocker|critical|major)/) {
-            if ($fields[3] ne $current_highlight) {
-                $arguments{highlights} .= "\n$fields[3]\n----------\n";
-                $current_highlight=$fields[3];
+            if ($current_highlight && $fields[3] ne $current_highlight) {
+                my @t=@component_highlights;
+                push @highlights, { component => $fields[3], list => \@t };
+                @component_highlights=();
             }
-            $arguments{highlights} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 =~ /blocker|major/ ? "\t\t" : "\t") ."$fields[2]\n";
+            $current_highlight=$fields[3];
+            push @component_highlights, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
         }
         elsif ($fields[1] =~ m/(normal|minor|trivial)/) {
-            if ($fields[3] ne $current_bugfixes) {
-                $arguments{bugfixes} .= "\n$fields[3]\n----------\n";
-                $current_bugfixes=$fields[3];
+            if ($current_bugfix && $fields[3] ne $current_bugfix) {
+                my @t=@component_bugfixes;
+                push @bugfixes, { component => $fields[3], list => \@t };
+                @component_bugfixes=();
             }
-            $arguments{bugfixes} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
+            $current_bugfix=$fields[3];
+            push @component_bugfixes, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
         } else { # enhancements
-            if ($fields[3] ne $current_enhancement) {
-                $arguments{enhancement} .= "\n$fields[3]\n----------\n";
-                $current_enhancement=$fields[3];
+            if ($current_enhancement && $fields[3] ne $current_enhancement) {
+                my @t=@component_enhancements;
+                push @enhancements, { component => $fields[3], list => \@t };
+                @component_enhancements=();
             }
-            $arguments{enhancement} .= "$fields[3]\t$fields[0]\t$fields[1]" . ($1 eq 'normal' ? "\t\t" : "\t") ."$fields[2]\n";
+            $current_enhancement=$fields[3];
+            push @component_enhancements, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
+
         }
     }
+$arguments{highlights} = \@highlights;
+$arguments{bugfixes} = \@bugfixes;
+$arguments{enhancements} = \@enhancements;
+
 }
 
 open (SYSPREFS, "git diff $tag installer/data/mysql/sysprefs.sql | grep '^+[^+]' | sed -e 's/^\+//' |");
@@ -201,36 +219,37 @@ foreach my $queryline (@syspref_queries) {
     my @values = split(/,/, $2);
     my $variable = $values[(grep { $columns[$_] eq 'variable' } 0..$#columns) - 1];
     $variable =~ s/['"`]//g;
-    push @sysprefs, $variable;
+    push @sysprefs, { name => $variable };
 }
-$arguments{sysprefs} = '  * ' . join("\n  * ", sort(@sysprefs)) . "\n" if @sysprefs;
+$arguments{sysprefs} = \@sysprefs;
 
 # Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
 # WARNING!!! Obfuscation ahead!!!
 my @contribs;
-my @contributor_list = map { $_->[1] }
+my @contributor_list = map { { name => $_->[1]} }
     sort { $a->[0] cmp $b->[0] }
     map { [(split /\s+/, $_)[scalar(@contribs = split /\s+/, $_)-1], $_] }
     qx(git log --pretty=short $tag..$HEAD | git shortlog -s | sort -k3 -);
 
 my @signers;
-my @signer_list = map { $_->[1] }
+my @signer_list = map { { name => $_->[1]} }
     sort { $a->[0] cmp $b->[0] }
     map { [(split /\s+/, $_)[scalar(@signers = split /\s+/, $_)-1], $_] }
     qx(git log $tag..$HEAD | grep 'Signed-off-by' | sed -e 's/^.*Signed-off-by: //' | sed -e 's/ <.*\$//' | sort -k3 - | uniq -c);
 
-my @sponsor_list = qx(git log $tag..$HEAD | grep 'Sponsored-by' | sed -e 's/^.*Sponsored-by: //' | sort | uniq);
+my @sponsor_list = map { {name => $_} }
+            qx(git log $tag..$HEAD | grep 'Sponsored-by' | sed -e 's/^.*Sponsored-by: //' | sort | uniq);
 
-$arguments{contributors} = join "", @contributor_list;
-$arguments{signers} = join "", @signer_list;
-$arguments{sponsors} = '  * ' . join("  * ", sort(@sponsor_list)) if @sponsor_list;
+$arguments{contributors} = \@contributor_list;
+$arguments{signers} = \@signer_list;
+$arguments{sponsors} = \@sponsor_list;
 $arguments{date} = strftime "%d %b %Y", gmtime;
 
 # Add autogenerated blurb to the bottom
 my $time_stamp = strftime("%d %b %Y %T", gmtime);
 $arguments{timestamp} = "##### Autogenerated release notes updated last on $time_stamp Z #####";
 
-$tt->process($template, \%arguments, $rnotes, {binmode => ":utf8"});
+$tt->process($template, \%arguments, $rnotes, {binmode => ":utf8"})|| die $tt->error(), "\n";
 
 if ($commit_changes) {
     if ($git_add) {

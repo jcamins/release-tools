@@ -24,29 +24,36 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 [%- IF highlights %]
 Highlights of [% shortversion %]
 ======================
+[% FOREACH highlight IN highlights %]
+[% highlight.component %]
+----------
+[% FOREACH line IN highlight.list %]	[% line.number %]	[% line.severity %]	[% line.short_desc %]
+[% END %][% END %][% END %]
 
-[% highlights %]
-[% END -%]
-
-[%- IF bugfixes %]
+[% IF bugfixes %]
 Bugs fixed in [% shortversion %]
 ======================
+[% FOREACH bugfix IN bugfixes %]
+[% bugfix.component %]
+----------
+[% FOREACH line IN bugfix.list %]	[% line.number %]	[% line.severity %]	[% line.short_desc %]
+[% END %][% END %][% END %]
 
-[% bugfixes %]
-[% END -%]
-
-[%- IF enhancement %]
+[% IF enhancements %]
 Enhancements in [% shortversion %]
 ======================
+[% FOREACH enhancement IN enhancements %]
+[% enhancement.component %]
+----------
+[% FOREACH line IN enhancement.list %]	[% line.number %]	[% line.short_desc %]
+[% END %][% END %][% END %]
 
-[% enhancement %]
-[% END -%]
-
-[%- IF sysprefs %]
+[% IF sysprefs %]
 New sysprefs in [% shortversion %]
 ======================
+[% FOREACH syspref IN sysprefs %]
+  * [% syspref.name %][% END %]
 
-[% sysprefs %]
 [% END %]
 System requirements
 ======================
@@ -81,7 +88,8 @@ Translations
 Complete or near-complete translations of the OPAC and staff
 interface are available in this release for the following languages:
 
-[% translations -%]
+[% FOREACH translation IN translations %]
+  * [% translation.language %][% END %]
 [% END -%]
 
 Partial translations are available for various other languages.
@@ -106,27 +114,28 @@ Release Team
 The release team for Koha [% line %] is
 
 [% INSERT $releaseteam %]
-[% END -%]
+[% END %]
 Credits
 ======================
 
 [% IF sponsors %]
 We thank the following libraries who are known to have sponsored
 new features in Koha [% line %]:
-[% sponsors -%]
-[% END -%]
+[% FOREACH sponsor IN sponsors %]  * [% sponsor.name %][% END %]
+[% END %]
 
 [%- IF contributors %]
 We thank the following individuals who contributed patches to Koha [% shortversion %].
-[% contributors %]
-[% END -%]
+[% FOREACH contributor IN contributors %]  * [% contributor.name %][% END %]
+[% END %]
 
 [%- IF signers %]
 We also especially thank the following individuals who tested patches
+[% FOREACH signer IN signers %]  * [% signer.name %][% END %]
+
 for Koha [% shortversion %].
 
-[% signers %]
-[% END -%]
+[% END %]
 We regret any omissions.  If a contributor has been inadvertantly missed,
 please send a patch against these release notes to 
 koha-patches@lists.koha-community.org.

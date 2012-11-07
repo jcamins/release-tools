@@ -1,106 +1,132 @@
 <h1>RELEASE NOTES FOR KOHA [% shortversion %]</h1>
 <p>[% date %]</p>
 
-Koha is the first free and open source software library automation package  (ILS). Development is sponsored by libraries of varying types and sizes,  volunteers, and support companies from around the world.
-The website for the Koha project is <a href="http://koha-community.org/">http://koha-community.org</a> and Koha [% shortversion %] can be downloaded from: <a href="[% downloadlink %]">[% downloadlink %]</a>
+<p>Koha is the first free and open source software library automation package  (ILS). Development is sponsored by libraries of varying types and sizes,  volunteers, and support companies from around the world.</p>
+<p>The website for the Koha project is <a href="http://koha-community.org/">http://koha-community.org</a> and Koha [% shortversion %] can be downloaded from: <a href="[% downloadlink %]">[% downloadlink %]</a></p>
 
-Installation instructions can be found at <a href="http://wiki.koha-community.org/wiki/Installation_Documentation">http://wiki.koha-community.org/wiki/Installation_Documentation</a> or in the INSTALL files that come in the tarball
+<p>Installation instructions can be found at <a href="http://wiki.koha-community.org/wiki/Installation_Documentation">http://wiki.koha-community.org/wiki/Installation_Documentation</a> or in the INSTALL files that come in the tarball</p>
 
 Koha [% shortversion %] is a bugfix/maintenance release.
 
-[%- IF highlights %]
-<h3>Highlights of [% shortversion %]</h3>
+[% IF highlights %]
+[% FOREACH highlight IN highlights %]
+<h3>[% highlight.component %]</h3>
+<ul>
+[% FOREACH line IN highlight.list %]<li>	[% line.number %]	[% line.severity %]	[% line.short_desc %]</li>
+[% END %]
+</ul>
+[% END %][% END %]
 
-[% highlights %]
-[% END -%]
-
-[%- IF bugfixes %]
+[% IF bugfixes %]
 <h3>Bugs fixed in [% shortversion %]</h3>
+[% FOREACH bugfix IN bugfixes %]
+<h4>[% bugfix.component %]</h4>
+<ul>
+[% FOREACH line IN bugfix.list %]<li>[% line.number %]	[% line.severity %]	[% line.short_desc %]</li>
+[% END %]
+</ul>
+[% END %][% END %]
 
-[% bugfixes %]
-[% END -%]
-
-[%- IF enhancement %]
+[% IF enhancements %]
 <h3>Enhancements in [% shortversion %]</h3>
+[% FOREACH enhancement IN enhancements %]
+<h4>[% enhancement.component %]</h4>
+<ul>
+[% FOREACH line IN enhancement.list %]<li>[% line.number %]	[% line.short_desc %]</li>
+[% END %]
+</ul>
+[% END %][% END %]
 
-[% enhancement %]
-[% END -%]
 
 [%- IF sysprefs %]
 <h3>New sysprefs in [% shortversion %]</h3>
-
-[% sysprefs %]
+<ul>
+[% FOREACH syspref IN sysprefs %]
+<li>[% syspref.name %]</li>
 [% END %]
-<h3>System requirements</h3>
+</ul>
+[% END %]
 
-    Important notes:
-    
-    * Perl 5.10 is required
-    * Zebra is required
+<h3>System requirements</h3>
+<p>Important notes:</p>
+<ul>
+<li>Perl 5.10 is required</li>
+<li>Zebra is required</li>
+</ul>
 
 
 <h3>Documentation</h3>
 
-As of Koha 3.2, the Koha manual is now maintained in DocBook.  The
-home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a>
-
-As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% line %]/en/</a>
-
-The Git repository for the Koha manual can be found at  <a href="http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary">http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary</a>
+<p>As of Koha 3.2, the Koha manual is now maintained in DocBook.  The home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a></p>
+<p>As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% line %]/en/</a></p>
+<p>The Git repository for the Koha manual can be found at  <a href="http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary">http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary</a></p>
 
 [%- IF translations %]
 <h3>Translations</h3>
+<p>Complete or near-complete translations of the OPAC and staff interface are available in this release for the following languages:</p>
+<ul>
+[% FOREACH translation IN translations %]
+<li>[% translation.language %]</li>
+[% END %]
+</ul>
+[% END %]
 
-Complete or near-complete translations of the OPAC and staff interface are available in this release for the following languages:
+<p>Partial translations are available for various other languages.</p>
+<p>The Koha team welcomes additional translations; please see <a href="http://wiki.koha-community.org/wiki/Translating_Koha">http://wiki.koha-community.org/wiki/Translating_Koha</a></p>
 
-[% translations -%]
-[% END -%]
+<p>For information about translating Koha, and join the <a href="http://lists.koha-community.org/cgi-bin/mailman/listinfo/koha-translate">koha-translate list</a> to volunteer </p>
 
-Partial translations are available for various other languages.
+<p>The most up-to-date translations can be found at <a href="http://translate.koha-community.org/">http://translate.koha-community.org</a></p>
 
-The Koha team welcomes additional translations; please see <a href="http://wiki.koha-community.org/wiki/Translating_Koha">http://wiki.koha-community.org/wiki/Translating_Koha</a>
-
-For information about translating Koha, and join the <a href="http://lists.koha-community.org/cgi-bin/mailman/listinfo/koha-translate">koha-translate list</a> to volunteer 
-
-The most up-to-date translations can be found at <a href="http://translate.koha-community.org/">http://translate.koha-community.org</a>
-
-[%- IF releaseteam %]
+[% IF releaseteam %]
 <h3>Release Team</h3>
 
-The release team for Koha [% line %] is
+The release team for Koha [% shortversion %] is
 
 [% INSERT $releaseteam %]
-[% END -%]
+[% END %]
 <h3>Credits</h3>
 
 [% IF sponsors %]
-We thank the following libraries who are known to have sponsored new features in Koha [% line %]:
-[% sponsors -%]
-[% END -%]
+<p>We thank the following libraries who are known to have sponsored new features in Koha [% shortversion %]:</p>
+<ul>
+[% FOREACH sponsor IN sponsors %]
+<li>[% sponsor.name %]</li>
+[% END %]
+</ul>
+[% END %]
 
-[%- IF contributors %]
-We thank the following individuals who contributed patches to Koha [% shortversion %].
-[% contributors %]
-[% END -%]
+[% IF contributors %]
+<p>We thank the following individuals who contributed patches to Koha [% shortversion %].</p>
+<ul>
+[% FOREACH contributor IN contributors %]
+<li>[% contributor.name %]</li>
+[% END %]
+</ul>
+[% END %]
 
-[%- IF signers %]
-We also especially thank the following individuals who tested patches for Koha [% shortversion %].
+[% IF signers %]
+<p>We also especially thank the following individuals who tested patches for Koha [% shortversion %].</p>
+<ul>
+[% FOREACH signer IN signers %]
+<li>[% signer.name %]</li>
+[% END %]
+</ul>
+[% END %]
 
-[% signers %]
-[% END -%]
-We regret any omissions.  If a contributor has been inadvertantly missed, please send a patch against these release notes to  koha-patches@lists.koha-community.org.
+<p>We regret any omissions.  If a contributor has been inadvertantly missed, please send a patch against these release notes to  koha-patches@lists.koha-community.org.</p>
 
 <h3>Revision control notes</h3>
 
-The Koha project uses Git for version control.  The current development version of Koha can be retrieved by checking out the master branch of <a href="git://git.koha-community.org/koha.git">git://git.koha-community.org/koha.git</a>
+<p>The Koha project uses Git for version control.  The current development version of Koha can be retrieved by checking out the master branch of <a href="git://git.koha-community.org/koha.git">git://git.koha-community.org/koha.git</a></p>
 
-The branch for this version of Koha and future bugfixes in this release line is [% branch %].
+<p>The branch for this version of Koha and future bugfixes in this release line is [% branch %].</p>
 
-The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
+<p>The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].</p>
 
 <h3>Bugs and feature requests</h3>
 
-Bug reports and feature requests can be filed at the Koha bugi tracker at <a href="http://bugs.koha-community.org/">http://bugs.koha-community.org</a>
+<p>Bug reports and feature requests can be filed at the Koha bugi tracker at <a href="http://bugs.koha-community.org/">http://bugs.koha-community.org</a></p>
 
-Ehara taku toa i te toa takitahi, engari he toa takitini 
+<p>Ehara taku toa i te toa takitahi, engari he toa takitini </p>
 [% timestamp %]
