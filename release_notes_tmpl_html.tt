@@ -105,6 +105,16 @@ The release team for Koha [% shortversion %] is
 </ul>
 [% END %]
 
+[% IF companies %]
+<p>We thank the following companies, who contributed patches to Koha [% shortversion %]</p>
+<ul>
+[% FOREACH company IN companies %]
+<li>[% company.name %]</li>
+[% END %]
+</ul>
+[% END %]
+
+
 [% IF signers %]
 <p>We also especially thank the following individuals who tested patches for Koha [% shortversion %].</p>
 <ul>

@@ -21,7 +21,7 @@ Installation instructions can be found at:
 
 Koha [% shortversion %] is a bugfix/maintenance release.
 
-[%- IF highlights %]
+[% IF highlights %]
 Highlights of [% shortversion %]
 ======================
 [% FOREACH highlight IN highlights %]
@@ -81,7 +81,7 @@ The Git repository for the Koha manual can be found at
 
     http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary
 
-[%- IF translations %]
+[% IF translations %]
 Translations
 ======================
 
@@ -90,7 +90,7 @@ interface are available in this release for the following languages:
 
 [% FOREACH translation IN translations %]
   * [% translation.language %][% END %]
-[% END -%]
+[% END %]
 
 Partial translations are available for various other languages.
 
@@ -107,7 +107,7 @@ The most up-to-date translations can be found at:
 
     http://translate.koha-community.org/
 
-[%- IF releaseteam %]
+[% IF releaseteam %]
 Release Team
 ======================
 
@@ -124,12 +124,18 @@ new features in Koha [% shortversion %]:
 [% FOREACH sponsor IN sponsors %]  * [% sponsor.name %][% END %]
 [% END %]
 
-[%- IF contributors %]
+[% IF contributors %]
 We thank the following individuals who contributed patches to Koha [% shortversion %].
 [% FOREACH contributor IN contributors %]  * [% contributor.name %][% END %]
 [% END %]
 
-[%- IF signers %]
+[% IF companies %]
+We thank the following companies, who contributed patches to Koha [% shortversion %]
+[% FOREACH company IN companies %]  * [% company.name %]
+[% END %]
+[% END %]
+
+[% IF signers %]
 We also especially thank the following individuals who tested patches
 [% FOREACH signer IN signers %]  * [% signer.name %][% END %]
 
