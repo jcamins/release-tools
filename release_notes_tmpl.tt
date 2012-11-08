@@ -131,7 +131,7 @@ We thank the following individuals who contributed patches to Koha [% shortversi
 [%- END -%]
 
 [% IF companies -%]
-We thank the following companies, who contributed patches to Koha [% shortversion %]
+We thank the following companies who contributed patches to Koha [% shortversion %]
 [% FOREACH company IN companies %]  * [% company.name %]
 [% END %]
 [%- END -%]

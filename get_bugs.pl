@@ -299,6 +299,17 @@ my @sponsor_list = map { {name => $_} }
 # contributing companies, with their number of commits, by alphabetical order
 # companies are retrieved from the email address.
 # generic emails like hotmail.com, gmail.com are cumulated in a "unitentified" contributor
+my %domain_map;
+
+open (my $domainmapfh, File::Spec->rel2abs( dirname(__FILE__) . '/gitdm/domain-map' ));
+while (<$domainmapfh>) {
+    chomp $_;
+    $_ =~ m/^([^# ]*) (.*)$/;
+    $domain_map{$1} = $2;
+}
+close ($domainmapfh);
+    
+
 my %companies_list;
 foreach (map { {name => $_->[1]} }
     sort { $a->[0] cmp $b->[0] }
@@ -309,12 +320,15 @@ foreach (map { {name => $_->[1]} }
         if ($company =~ /o2\.pl|gmail\.com|hotmail\.com|\(none\)/) {
             $companies_list{unidentified} += $nbpatch;
         } else {
+            if ($domain_map{$company}) {
+                $company = $domain_map{$company};
+            }
             $companies_list{$company} += $nbpatch;
         }
     }
 my @companies_list;
 foreach (sort {$a cmp $b} keys %companies_list) {
-    push @companies_list, {name => "$companies_list{$_} $_"};
+    push @companies_list, {name => sprintf("% 7d %s", $companies_list{$_}, $_)};
 }
 
 $arguments{contributors} = \@contributor_list;

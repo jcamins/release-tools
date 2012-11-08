@@ -107,7 +107,7 @@ The release team for Koha [% shortversion %] is
 [% END %]
 
 [% IF companies %]
-<p>We thank the following companies, who contributed patches to Koha [% shortversion %]</p>
+<p>We thank the following companies who contributed patches to Koha [% shortversion %]</p>
 <ul>
 [% FOREACH company IN companies %]
 <li>[% company.name %]</li>
