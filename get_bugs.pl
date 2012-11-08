@@ -19,6 +19,7 @@
 use strict;
 use warnings;
 
+use Pod::Usage;
 use POSIX qw(strftime);
 use LWP::Simple;
 use Text::CSV;
@@ -59,18 +60,22 @@ my $password    = '';
 
 GetOptions(
     't|tag:s'       => \$tag,
-    'h|head:s'      => \$HEAD,
+    'head:s'      => \$HEAD,
     'template:s'    => \$template,
     'r|rnotes:s'    => \$rnotes,
     'v|version:s'   => \$version,
     'c|commit'      => \$commit_changes,
-    'h|html'        => \$html,
-    'help|?'        => \$help,
+    'html'        => \$html,
+    'help|h'        => \$help,
     'verbose'       => \$verbose,
     'u'             => \$login,
     'p'             => \$password,
 );
 
+if ($help) {
+    pod2usage( -verbose => 2 );
+    exit;
+}
 
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
@@ -135,8 +140,6 @@ my $git_add = 1 unless -e "misc/release_notes/$rnotes";
 
 $tag = `git describe --abbrev=0` unless $tag;
 chomp $tag;
-
-die "Useful information goes here..." if $help;
 
 my @bug_list = ();
 my @git_log = qx|git log --pretty=format:'%s' $tag..$HEAD|;
@@ -234,7 +237,6 @@ if (scalar @bug_list) {
                 $description='' if $fields[0] <4500;
                 # remove BibLibre specific informations:
                 $description =~ s/\(BibLibre MT\d\d\d\d\) *\n//;
-                $description =~ s/\(ref biblibre\: MT\d\d\d\d\) *\n//;
                 $description =~ s/^\n//;
 
                 if ($html) {
@@ -337,3 +339,36 @@ if ($commit_changes) {
 }
 
 exit 0;
+=head1 NAME
+
+get_bugs.pl - Generate release notes
+
+=head1 USAGE
+
+=over
+
+=item get_bugs.pl [-t] [-h] [--template:template] [-r:notes] [-v:version] [-c] [--html][--help][--verbose][-u bugzilla_login][-p bugzilla password]
+
+This script will generate releases notes from a template file (that can be specified), by retrieving all bugs in git since a given tag
+The script retrieve the patch description from bugzilla, and, if login/password provided, the comment 0 (detailled description)
+It also generate contributors & signers & sponsor list (using git informations)
+
+
+=back
+
+=head1 PARAMETERS
+
+    t|tag       specify where the release start from. If not specified, it's the last stable .0 release
+    head        NEED DOC,
+    template    The template file to use to generate the release notes,
+    r|rnotes    NEED DOC,
+    v|version   the version to generate. Calculated from kohaversion if not provided
+    c|commit    NEED DOC
+    html        if set, the notes will be generated in HTML format (useful for koha-community.org)
+    help|h      display this help
+    verbose     verbose
+    u           a bugzilla login. If provided, will append the description/comment 0 to each enhancement
+    p           a bugzilla password. If provided, will append the description/comment 0 to each enhancement
+
+
+=cut
