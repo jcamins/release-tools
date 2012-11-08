@@ -28,6 +28,7 @@ use File::Basename;
 use File::Spec;
 use lib('.');
 use encoding('utf8');
+use Storable; # used to store bugzilla descriptions
 
 # TODO:
 #   1. Paramatize!
@@ -53,6 +54,8 @@ my $commit_changes  = 0;
 my $help        = 0;
 my $verbose     = 0;
 my $html        = 0; # if set, will create a HTML version of the release notes
+my $login       = '';
+my $password    = '';
 
 GetOptions(
     't|tag:s'       => \$tag,
@@ -64,7 +67,10 @@ GetOptions(
     'h|html'        => \$html,
     'help|?'        => \$help,
     'verbose'       => \$verbose,
+    'u'             => \$login,
+    'p'             => \$password,
 );
+
 
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
@@ -87,11 +93,20 @@ my $expanded_release = $3;
 my $additional = $5;
 $minor =~ s/^0*(\d+)$/$1/;
 $release =~ s/^0*(\d+)$/$1/;
-$arguments{shortversion} = "$major.$minor.$release";
-$arguments{shortversion} .= "$additional" if ($additional);
-$arguments{expandedversion} = "$major.$expanded_minor.$expanded_release";
+my $shortversion = "$major.$minor.$release";
+$arguments{shortversion}     = $shortversion;
+$arguments{shortversion}    .= "$additional" if ($additional);
+$arguments{expandedversion}  = "$major.$expanded_minor.$expanded_release";
 $arguments{expandedversion} .= "$additional" if ($additional);
-$arguments{line} = "$major." . ($minor % 2 ? $minor + 1 : $minor);
+$arguments{line}             = "$major." . ($minor % 2 ? $minor + 1 : $minor);
+
+# description is a hash used to store bugzilla descriptions
+# bugzilla descriptions are slow to retrieve from bugzilla, and can't be updated
+# so, retrieve them once, and store them for re-use if needed
+my %descriptions;
+if (-e "descriptions-$shortversion.hash") {
+    %descriptions = %{ retrieve("descriptions-$shortversion.hash") };
+}
 
 $template    = "release_notes_tmpl".($html?"_html":"").".tt" unless $template;
 $rnotes      = "misc/release_notes/release_notes_${major}_${minor}_${release}.".($html?"html":"txt") unless $rnotes;
@@ -177,7 +192,7 @@ if (scalar @bug_list) {
         if ($fields[1] =~ m/(blocker|critical|major)/) {
             if ($current_highlight && $fields[3] ne $current_highlight) {
                 my @t=@component_highlights;
-                push @highlights, { component => $fields[3], list => \@t };
+                push @highlights, { component => $current_highlight, list => \@t };
                 @component_highlights=();
             }
             $current_highlight=$fields[3];
@@ -186,25 +201,64 @@ if (scalar @bug_list) {
         elsif ($fields[1] =~ m/(normal|minor|trivial)/) {
             if ($current_bugfix && $fields[3] ne $current_bugfix) {
                 my @t=@component_bugfixes;
-                push @bugfixes, { component => $fields[3], list => \@t };
+                push @bugfixes, { component => $current_bugfix, list => \@t };
                 @component_bugfixes=();
             }
             $current_bugfix=$fields[3];
             push @component_bugfixes, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
         } else { # enhancements
+            #
+            # if bugzilla login and password have been provided, retrieve the description of the bug
+            #
+            my $description;
+            if ($login && $password) {
+                if ( $descriptions{$fields[0]} ) {
+#                    print "stored $fields[0]\n";
+                    $description = $descriptions{$fields[0]};
+                } else {
+#                    print "retrieving $fields[0]\n";
+                    my $bugdetail = `bugz -u $login -p $password -b http://bugs.koha-community.org/bugzilla3/ get $fields[0]`;
+                    $bugdetail =~ /\[Comment \#0\].*?\n-------------------------------------------------------------------------------\n(.*)\[Comment \#1\]/s;
+                    $description = $1;
+                    #
+                    # append this to the storable description
+                    # no one can change bug description, so once we've got it, remember it !
+                    $descriptions{$fields[0]} = $description;
+                    store (\%descriptions,"descriptions-$shortversion.hash");
+                }
+                # CLEAN DESCRIPTION
+                # if the comment 0 start with "Created attachment...", remove the first 2 lines : the attachment and the patch description
+                # that is usually the title of the bug
+                $description =~ s/^Created attachment \d*\n.*?\n//;
+                # if the description is related to bug <4500, it comes from bugs.koha.org import and is useless, discard it
+                $description='' if $fields[0] <4500;
+                # remove BibLibre specific informations:
+                $description =~ s/\(BibLibre MT\d\d\d\d\) *\n//;
+                $description =~ s/\(ref biblibre\: MT\d\d\d\d\) *\n//;
+                $description =~ s/^\n//;
+
+                if ($html) {
+                    # do some basic formatting if we are in html mode, if the description is multilined
+                    $description =~ s/\n/<br\/>/g;
+                }
+            }
             if ($current_enhancement && $fields[3] ne $current_enhancement) {
                 my @t=@component_enhancements;
-                push @enhancements, { component => $fields[3], list => \@t };
+                push @enhancements, { component => $current_enhancement, list => \@t };
                 @component_enhancements=();
             }
             $current_enhancement=$fields[3];
-            push @component_enhancements, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
+            push @component_enhancements, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2], description => $description };
 
         }
     }
-$arguments{highlights} = \@highlights;
-$arguments{bugfixes} = \@bugfixes;
-$arguments{enhancements} = \@enhancements;
+    # push the last components
+    push @highlights, { component => $current_highlight, list => \@component_highlights };
+    push @bugfixes, { component => $current_bugfix, list => \@component_bugfixes };
+    push @enhancements, { component => $current_enhancement, list => \@component_enhancements };
+    $arguments{highlights} = \@highlights;
+    $arguments{bugfixes} = \@bugfixes;
+    $arguments{enhancements} = \@enhancements;
 
 }
 

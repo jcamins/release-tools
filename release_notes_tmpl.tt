@@ -45,7 +45,8 @@ Enhancements in [% shortversion %]
 [% FOREACH enhancement IN enhancements %]
 [% enhancement.component %]
 ----------
-[% FOREACH line IN enhancement.list %]	[% line.number %]	[% line.short_desc %]
+[% FOREACH line IN enhancement.list %]	[% line.number %]	[% line.short_desc %][% IF line.description %]
+[% line.description %][% END %]
 [% END %][% END %][% END %]
 
 [% IF sysprefs %]

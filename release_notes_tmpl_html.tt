@@ -33,6 +33,7 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 <h4>[% enhancement.component %]</h4>
 <ul>
 [% FOREACH line IN enhancement.list %]<li>[% line.number %]	[% line.short_desc %]</li>
+<ul><p>[% line.description %]</p></ul>
 [% END %]
 </ul>
 [% END %][% END %]
