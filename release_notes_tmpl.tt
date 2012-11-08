@@ -28,7 +28,7 @@ Highlights of [% shortversion %]
 [% highlight.component %]
 ----------
 [% FOREACH line IN highlight.list %]	[% line.number %]	[% line.severity %]	[% line.short_desc %]
-[% END %][% END %][% END %]
+[% END %][% END %][% END -%]
 
 [% IF bugfixes %]
 Bugs fixed in [% shortversion %]
@@ -37,7 +37,7 @@ Bugs fixed in [% shortversion %]
 [% bugfix.component %]
 ----------
 [% FOREACH line IN bugfix.list %]	[% line.number %]	[% line.severity %]	[% line.short_desc %]
-[% END %][% END %][% END %]
+[% END %][% END %][% END -%]
 
 [% IF enhancements %]
 Enhancements in [% shortversion %]
@@ -47,7 +47,7 @@ Enhancements in [% shortversion %]
 ----------
 [% FOREACH line IN enhancement.list %]	[% line.number %]	[% line.short_desc %][% IF line.description %]
 [% line.description %][% END %]
-[% END %][% END %][% END %]
+[% END %][% END %][% END -%]
 
 [% IF sysprefs %]
 New sysprefs in [% shortversion %]
@@ -114,38 +114,38 @@ Release Team
 
 The release team for Koha [% shortversion %] is
 
-[% INSERT $releaseteam %]
-[% END %]
+[% INSERT $releaseteam %][% END -%]
+
 Credits
 ======================
 
-[% IF sponsors %]
+[% IF sponsors -%]
 We thank the following libraries who are known to have sponsored
 new features in Koha [% shortversion %]:
 [% FOREACH sponsor IN sponsors %]  * [% sponsor.name %][% END %]
-[% END %]
+[%- END -%]
 
-[% IF contributors %]
+[% IF contributors -%]
 We thank the following individuals who contributed patches to Koha [% shortversion %].
 [% FOREACH contributor IN contributors %]  * [% contributor.name %][% END %]
-[% END %]
+[%- END -%]
 
-[% IF companies %]
+[% IF companies -%]
 We thank the following companies, who contributed patches to Koha [% shortversion %]
 [% FOREACH company IN companies %]  * [% company.name %]
 [% END %]
-[% END %]
+[%- END -%]
 
-[% IF signers %]
+[% IF signers -%]
 We also especially thank the following individuals who tested patches
-[% FOREACH signer IN signers %]  * [% signer.name %][% END %]
-
 for Koha [% shortversion %].
+[% FOREACH signer IN signers %]  * [% signer.name %][% END %]
+[%- END -%]
 
-[% END %]
 We regret any omissions.  If a contributor has been inadvertantly missed,
 please send a patch against these release notes to 
 koha-patches@lists.koha-community.org.
+
 
 Revision control notes
 ======================
@@ -158,6 +158,7 @@ version of Koha can be retrieved by checking out the master branch of
 The branch for this version of Koha and future bugfixes in this release line is [% branch %].
 
 The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
+
 
 Bugs and feature requests
 ======================
