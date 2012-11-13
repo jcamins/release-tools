@@ -80,6 +80,7 @@ if ($help) {
 print "Creating release notes for version $version\n\n";
 # variations on a theme of version numbers...
 
+my $reltools = File::Spec->rel2abs( dirname(__FILE__) );
 my $tt;
 $tt = Template->new(
         {
@@ -111,11 +112,11 @@ $arguments{line}             = "$major." . ($minor % 2 ? $minor + 1 : $minor);
 # we store them in a CSV file so, they can be modified manually if needed, for more clarity
 # and we often need more clarity or clean some technical informations
 my %descriptions;
-if (-e "descriptions-$shortversion.csv") {
+if (-e "$reltools/descriptions/descriptions-$shortversion.csv") {
         my $csv = Text::CSV->new ( { sep_char => '|', binary => 1 } )  # should set binary attribute.
                         or die "Cannot use CSV: ".Text::CSV->error_diag ();
 
-        open my $fh, "<:encoding(utf8)", "descriptions-$shortversion.csv" or die "descriptions-$shortversion.csv: $!";
+        open my $fh, "<:encoding(utf8)", "$reltools/descriptions/descriptions-$shortversion.csv" or die "$reltools/descriptions-$shortversion.csv: $!";
         while ( my $row = $csv->getline( $fh ) ) {
             $descriptions{$row->[0]} = $row->[2];
         }
@@ -241,7 +242,7 @@ if (scalar @bug_list) {
                     # FIXME not very efficient to save on each bug added
                     my $csv = Text::CSV->new ();
                     my $fh;
-                    open $fh, ">:encoding(utf8)", "descriptions-$shortversion.csv" or die "descriptions-$shortversion.csv: $!";
+                    open $fh, ">:encoding(utf8)", "$reltools/descriptions/descriptions-$shortversion.csv" or die "$reltools/descriptions/descriptions-$shortversion.csv: $!";
                     print $fh "number|shortdesc|fulldesc\n";
 
                     foreach my $desc (keys %descriptions) {
@@ -249,7 +250,7 @@ if (scalar @bug_list) {
                         $descriptions{$desc} =~ s/"/ /g;
                         print $fh $desc."||\"".$descriptions{$desc}."\"\n";
                     }
-                    close $fh or die "new.csv: $!";
+                    close $fh or die "$reltools/descriptions/descriptions-$shortversion.csv: $!";
 
                 }
                 # CLEAN DESCRIPTION
