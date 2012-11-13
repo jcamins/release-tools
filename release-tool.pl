@@ -327,6 +327,21 @@ The name of the tarball file to generate. Defaults to
 
 E-mail address to which an an alert summarizing the result should be sent.
 
+=item B<--email-template>
+
+Template file for the release announcement e-mail. Defaults to
+"announcement.eml.tt" in the same directory as this script
+
+=item B<--bzlogin>
+
+Your login on bugzilla. If provided, it will be used to retrieve
+the comment 0 for each enhancement. This information will be
+added in the release notes
+
+=item B<--bzpassword>
+
+Your password on bugzilla. Must be provided if you provide bzlogin
+
 =back
 
 =head2 Announcement options
@@ -394,6 +409,9 @@ my $options = GetOptions(
     'email-file=s',
     'email-recipients=s', 'email-subject=s',
     'email-template=s',
+
+    # Bugzilla options
+    'bzlogin:s','bzpassword:s',
 );
 
 binmode( STDOUT, ":utf8" );
@@ -612,6 +630,7 @@ unless ( $config->param('skip-rnotes') || $config->param('use-dist-rnotes') ) {
           . $config->param('rnotes') . " -t "
           . $config->param('since') . " -v "
           . $config->param('version')
+          .($config->param('bzlogin')?" -u ".$config->param('bzlogin')." -p ".$config->param('bzpassword'):"")
           . " --verbose 2>&1"
           );
     warn colored( "Error generating release notes. Continuing anyway.",
