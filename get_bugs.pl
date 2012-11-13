@@ -29,7 +29,7 @@ use File::Basename;
 use File::Spec;
 use lib('.');
 use encoding('utf8');
-use Storable; # used to store bugzilla descriptions
+use Text::CSV; # used to store bugzilla full descriptions
 
 # TODO:
 #   1. Paramatize!
@@ -108,9 +108,19 @@ $arguments{line}             = "$major." . ($minor % 2 ? $minor + 1 : $minor);
 # description is a hash used to store bugzilla descriptions
 # bugzilla descriptions are slow to retrieve from bugzilla, and can't be updated
 # so, retrieve them once, and store them for re-use if needed
+# we store them in a CSV file so, they can be modified manually if needed, for more clarity
+# and we often need more clarity or clean some technical informations
 my %descriptions;
-if (-e "descriptions-$shortversion.hash") {
-    %descriptions = %{ retrieve("descriptions-$shortversion.hash") };
+if (-e "descriptions-$shortversion.csv") {
+        my $csv = Text::CSV->new ( { sep_char => '|', binary => 1 } )  # should set binary attribute.
+                        or die "Cannot use CSV: ".Text::CSV->error_diag ();
+
+        open my $fh, "<:encoding(utf8)", "descriptions-$shortversion.csv" or die "descriptions-$shortversion.csv: $!";
+        while ( my $row = $csv->getline( $fh ) ) {
+            $descriptions{$row->[0]} = $row->[2];
+        }
+        $csv->eof or $csv->error_diag();
+        close $fh;
 }
 
 $template    = "release_notes_tmpl".($html?"_html":"").".tt" unless $template;
@@ -227,7 +237,20 @@ if (scalar @bug_list) {
                     # append this to the storable description
                     # no one can change bug description, so once we've got it, remember it !
                     $descriptions{$fields[0]} = $description;
-                    store (\%descriptions,"descriptions-$shortversion.hash");
+                    # OK, save the file with the new bug found
+                    # FIXME not very efficient to save on each bug added
+                    my $csv = Text::CSV->new ();
+                    my $fh;
+                    open $fh, ">:encoding(utf8)", "descriptions-$shortversion.csv" or die "descriptions-$shortversion.csv: $!";
+                    print $fh "number|shortdesc|fulldesc\n";
+
+                    foreach my $desc (keys %descriptions) {
+                        $descriptions{$desc} =~ s/\|/ /g;
+                        $descriptions{$desc} =~ s/"/ /g;
+                        print $fh $desc."||\"".$descriptions{$desc}."\"\n";
+                    }
+                    close $fh or die "new.csv: $!";
+
                 }
                 # CLEAN DESCRIPTION
                 # if the comment 0 start with "Created attachment...", remove the first 2 lines : the attachment and the patch description
