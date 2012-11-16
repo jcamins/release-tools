@@ -1,7 +1,9 @@
 The Koha release team is happy to announce the release of Koha [% VERSION %].
-
+[% if MAJOR %]
+This version is a major release, that comes with a lot of new features and enhancements or existing features
+[% ELSE %]
 This is a stable release and contains bugfixes as well as updated translations.
-
+[% END %]
 You can download it at
 
 <a href="http://download.koha-community.org/" target="_blank">http://download.koha-community.org/</a>

@@ -6,41 +6,53 @@
 
 <p>Installation instructions can be found at <a href="http://wiki.koha-community.org/wiki/Installation_Documentation">http://wiki.koha-community.org/wiki/Installation_Documentation</a> or in the INSTALL files that come in the tarball</p>
 
+[% IF MAJOR %]
+Koha [% shortversion %] is a major release, that comes with many new features and enhancement of previously existing features.
+[% ELSE %]
 Koha [% shortversion %] is a bugfix/maintenance release.
-
-[% IF highlights %]
-[% FOREACH highlight IN highlights %]
-<h3>[% highlight.component %]</h3>
-<ul>
-[% FOREACH line IN highlight.list %]<li>	[% line.number %]	[% line.severity %]	[% line.short_desc %]</li>
 [% END %]
-</ul>
-[% END %][% END %]
-
-[% IF bugfixes %]
-<h3>Bugs fixed in [% shortversion %]</h3>
-[% FOREACH bugfix IN bugfixes %]
-<h4>[% bugfix.component %]</h4>
-<ul>
-[% FOREACH line IN bugfix.list %]<li>[% line.number %]	[% line.severity %]	[% line.short_desc %]</li>
-[% END %]
-</ul>
-[% END %][% END %]
 
 [% IF enhancements %]
-<h3>Enhancements in [% shortversion %]</h3>
+<h3>Enhancements and new features in [% shortversion %]</h3>
 [% FOREACH enhancement IN enhancements %]
 <h4>[% enhancement.component %]</h4>
 <ul>
-[% FOREACH line IN enhancement.list %]<li>[% line.number %]	[% line.short_desc %]</li>
+[% FOREACH line IN enhancement.list %]<li>[% line.short_desc %] <i>(bug #[% line.number %])</i></li>
 <ul><p>[% line.description %]</p></ul>
 [% END %]
 </ul>
 [% END %][% END %]
 
 
+[% IF highlights %]
+<h3>Critical bugs fixed in Koha [% shortversion %]</h3>
+[% IF MAJOR %]
+<p>(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)</p>
+[% END %]
+[% FOREACH highlight IN highlights %]
+<h4>[% highlight.component %]</h4>
+<ul>
+[% FOREACH line IN highlight.list %]<li>[% line.short_desc %] <i>([% line.severity %] - [% line.number %])</i></li>
+[% END %]
+</ul>
+[% END %][% END %]
+
+[% IF bugfixes %]
+<h3>Other bugs fixed in Koha [% shortversion %]</h3>
+[% IF MAJOR %]
+<p>(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)</p>
+[% END %]
+
+[% FOREACH bugfix IN bugfixes %]
+<h4>[% bugfix.component %]</h4>
+<ul>
+[% FOREACH line IN bugfix.list %]<li>[% line.short_desc %]<i>([% line.severity %]- [% line.number %])</i></li>
+[% END %]
+</ul>
+[% END %][% END %]
+
 [%- IF sysprefs %]
-<h3>New sysprefs in [% shortversion %]</h3>
+<h3>New system preferences in Koha [% shortversion %]</h3>
 <ul>
 [% FOREACH syspref IN sysprefs %]
 <li>[% syspref.name %]</li>
@@ -58,7 +70,7 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 
 <h3>Documentation</h3>
 
-<p>As of Koha 3.2, the Koha manual is now maintained in DocBook.  The home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a></p>
+<p>The Koha manual is maintained in DocBook. The home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a></p>
 <p>As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% shortversion %]/en/</a></p>
 <p>The Git repository for the Koha manual can be found at  <a href="http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary">http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary</a></p>
 
@@ -137,7 +149,7 @@ The release team for Koha [% shortversion %] is
 
 <h3>Bugs and feature requests</h3>
 
-<p>Bug reports and feature requests can be filed at the Koha bugi tracker at <a href="http://bugs.koha-community.org/">http://bugs.koha-community.org</a></p>
+<p>Bug reports and feature requests can be filed at the Koha bug tracker at <a href="http://bugs.koha-community.org/">http://bugs.koha-community.org</a></p>
 
-<p>Ehara taku toa i te toa takitahi, engari he toa takitini </p>
+<p>Ehara taku toa i te toa takitahi, engari he toa takitini (My strength is not that of a single warrior but that of many) </p>
 [% timestamp %]

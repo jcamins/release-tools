@@ -105,6 +105,7 @@ $arguments{shortversion}    .= "$additional" if ($additional);
 $arguments{expandedversion}  = "$major.$expanded_minor.$expanded_release";
 $arguments{expandedversion} .= "$additional" if ($additional);
 $arguments{line}             = "$major." . ($minor % 2 ? $minor + 1 : $minor);
+$arguments{MAJOR} = $release?0:1; # major release if the last number is 0
 
 # description is a hash used to store bugzilla descriptions
 # bugzilla descriptions are slow to retrieve from bugzilla, and can't be updated
@@ -206,6 +207,7 @@ if (scalar @bug_list) {
     while (scalar @csv_file) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
+        $fields[2] = ucfirst($fields[2]);
         if ($fields[1] =~ m/(blocker|critical|major)/) {
             if ($current_highlight && $fields[3] ne $current_highlight) {
                 my @t=@component_highlights;

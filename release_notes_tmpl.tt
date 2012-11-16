@@ -19,11 +19,28 @@ Installation instructions can be found at:
     
     OR in the INSTALL files that come in the tarball
 
+[% IF MAJOR %]
+Koha [% shortversion %] is a major release, that comes with many new features and enhancement of previously existing features.
+[% ELSE %]
 Koha [% shortversion %] is a bugfix/maintenance release.
+[% END %]
+
+[% IF enhancements %]
+Enhancements and new features in [% shortversion %]
+======================
+[% FOREACH enhancement IN enhancements %]
+[% enhancement.component %]
+----------
+[% FOREACH line IN enhancement.list %]	[% line.number %]	[% line.short_desc %][% IF line.description %]
+[% line.description %][% END %]
+[% END %][% END %][% END -%]
 
 [% IF highlights %]
-Highlights of [% shortversion %]
+Critical bugs fixed in [% shortversion %]
 ======================
+[% IF MAJOR %]
+(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)
+[% END %]
 [% FOREACH highlight IN highlights %]
 [% highlight.component %]
 ----------
@@ -31,22 +48,15 @@ Highlights of [% shortversion %]
 [% END %][% END %][% END -%]
 
 [% IF bugfixes %]
-Bugs fixed in [% shortversion %]
+Other bugs fixed in [% shortversion %]
 ======================
+[% IF MAJOR %]
+(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)
+[% END %]
 [% FOREACH bugfix IN bugfixes %]
 [% bugfix.component %]
 ----------
 [% FOREACH line IN bugfix.list %]	[% line.number %]	[% line.severity %]	[% line.short_desc %]
-[% END %][% END %][% END -%]
-
-[% IF enhancements %]
-Enhancements in [% shortversion %]
-======================
-[% FOREACH enhancement IN enhancements %]
-[% enhancement.component %]
-----------
-[% FOREACH line IN enhancement.list %]	[% line.number %]	[% line.short_desc %][% IF line.description %]
-[% line.description %][% END %]
 [% END %][% END %][% END -%]
 
 [% IF sysprefs %]
@@ -68,8 +78,8 @@ System requirements
 Documentation
 ======================
 
-As of Koha 3.2, the Koha manual is now maintained in DocBook.  The
-home page for Koha documentation is 
+The Koha manual is maintained in DocBook.The home page for Koha 
+documentation is 
 
     http://koha-community.org/documentation/
 
@@ -170,4 +180,5 @@ tracker at
 
 
 Ehara taku toa i te toa takitahi, engari he toa takitini 
+My strength is not that of a single warrior but that of many
 [% timestamp %]
