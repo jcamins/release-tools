@@ -7,13 +7,16 @@
 <p>Installation instructions can be found at <a href="http://wiki.koha-community.org/wiki/Installation_Documentation">http://wiki.koha-community.org/wiki/Installation_Documentation</a> or in the INSTALL files that come in the tarball</p>
 
 [% IF MAJOR %]
-Koha [% shortversion %] is a major release, that comes with many new features and enhancement of previously existing features.
+<p>Koha [% shortversion %] is a major release, that comes with many new features.</p>
 [% ELSE %]
 Koha [% shortversion %] is a bugfix/maintenance release.
 [% END %]
 
+<p>It includes [% nb_enhancements %] enhancement and [% nb_bugfixes %] bugfixes.</p>
+
+
 [% IF enhancements %]
-<h3>Enhancements and new features in [% shortversion %]</h3>
+<h3>Enhancements and new features in Koha [% shortversion %]</h3>
 [% FOREACH enhancement IN enhancements %]
 <h4>[% enhancement.component %]</h4>
 <ul>

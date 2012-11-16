@@ -20,10 +20,12 @@ Installation instructions can be found at:
     OR in the INSTALL files that come in the tarball
 
 [% IF MAJOR %]
-Koha [% shortversion %] is a major release, that comes with many new features and enhancement of previously existing features.
+Koha [% shortversion %] is a major release, that comes with many new features.
 [% ELSE %]
 Koha [% shortversion %] is a bugfix/maintenance release.
 [% END %]
+
+It includes [% nb_enhancements %] enhancement and [% nb_bugfixes %] bugfixes.
 
 [% IF enhancements %]
 Enhancements and new features in [% shortversion %]

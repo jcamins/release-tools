@@ -204,6 +204,8 @@ if (scalar @bug_list) {
     my (@component_highlights,@highlights);
     my (@component_bugfixes,@bugfixes);
     my (@component_enhancements,@enhancements);
+    my $nb_enhancements = 0;
+    my $nb_bugfixes     = 0;
     while (scalar @csv_file) {
         $csv->parse(shift @csv_file);
         my @fields = $csv->fields;
@@ -216,6 +218,7 @@ if (scalar @bug_list) {
             }
             $current_highlight=$fields[3];
             push @component_highlights, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
+            $nb_bugfixes++;
         }
         elsif ($fields[1] =~ m/(normal|minor|trivial)/) {
             if ($current_bugfix && $fields[3] ne $current_bugfix) {
@@ -225,6 +228,7 @@ if (scalar @bug_list) {
             }
             $current_bugfix=$fields[3];
             push @component_bugfixes, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
+            $nb_bugfixes++;
         } else { # enhancements
             #
             # if bugzilla login and password have been provided, retrieve the description of the bug
@@ -261,7 +265,11 @@ if (scalar @bug_list) {
 
                 if ($html) {
                     # do some basic formatting if we are in html mode, if the description is multilined
-                    $description =~ s/([a-zA-Z0-9 ])\n/$1 /mg;
+                    $description =~ s/^    /&nbsp;&nbsp;&nbsp;&nbsp;/mg;
+                    $description =~ s/^  /&nbsp;&nbsp;/mg; 
+                    $description =~ s/([a-zA-Z0-9 ,])\n/$1 /mg;
+                    $description =~ s/</&lt;/g;
+                    $description =~ s/>/&gt;/g;
                     $description =~ s/\n/<br\/>/g;
                 }
             }
@@ -272,17 +280,18 @@ if (scalar @bug_list) {
             }
             $current_enhancement=$fields[3];
             push @component_enhancements, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2], description => $description };
-
+            $nb_enhancements++;
         }
     }
     # push the last components
     push @highlights, { component => $current_highlight, list => \@component_highlights };
     push @bugfixes, { component => $current_bugfix, list => \@component_bugfixes };
     push @enhancements, { component => $current_enhancement, list => \@component_enhancements };
-    $arguments{highlights} = \@highlights;
-    $arguments{bugfixes} = \@bugfixes;
-    $arguments{enhancements} = \@enhancements;
-
+    $arguments{highlights}      = \@highlights;
+    $arguments{bugfixes}        = \@bugfixes;
+    $arguments{enhancements}    = \@enhancements;
+    $arguments{nb_bugfixes}     = $nb_bugfixes;
+    $arguments{nb_enhancements} = $nb_enhancements;
 }
 
 open (SYSPREFS, "git diff $tag installer/data/mysql/sysprefs.sql | grep '^+[^+]' | sed -e 's/^\+//' |");
