@@ -1,33 +1,13 @@
 number|shortdesc|fulldesc
 8728||"The AddReserve routine had resdate and expdate added in between arguments (not
-appended) in 2009/2010ish and
- http://git.koha-community.org/gitweb/?p=koha.git;a=blob;f=C4/Reserves.pm;hb=b7e
-35a37256054c2a1d07a4fcd965283aa91968e
-
-so we need to adjust the t/db_dependent/Reserve.t accordingly.
+appended) in 2009/2010ish so we need to adjust the t/db_dependent/Reserve.t accordingly.
 
 "
-7249||"Created attachment 6355
-git format patch adding report webservice, caching support, and public
+7249||"This patch adds report webservice, with caching support, and public
 visibility setting
-
-Patch includes parts of 
-https://github.com/ranginui/koha/commit/20cb74d1f5f86ed9fa1e6a1ead29798ff894c685
-and
-https://github.com/ranginui/koha/commit/2a1f4172dafbfb7435e46762fcfab368d3dceb7a
-
-It also adds in caching for intranet, setting a cache expiry time for reports,
-and a public visibility flag to reports.
-
-I still have to add a better user input dialog and user validation (patch
-following soon).
-Currently the input is just a text field that takes seconds (not ideal for end
-user) and the validation is a die message (as the timeout cannot exceed 30 days
-or Memcached::set will take it as an absolute time).
-
-The attached patch excluded the functionality added in bug 7248 (so that bug is
-a dependency to this).
-
+Each report can now be declared public and accessible (WARNING: without
+authentication) from OPAC.
+To improve performance, it's also possible to cache for up to 30 days 
 "
 8492||"This enhancement extends the OpacSuppression feature with an optional IP address
 range within which results are _not_ suppressed.
@@ -59,172 +39,139 @@ will be usefull for libraries having a single basketgroup for the supplier, but
 different shipping/billing address
 
 "
+8454||"Currently, when you click  Holds to pull from the Circulation menu, the only
+thing that you see is a white screen and a side navigation bar that says  Refine
+Results .
+
+Since there appear to be no results to refine, the holds to pull list appears
+completely empty. Staff have to know to click  Submit on the Refine Results 
+form to get anything.
+
+This patch set the run_report  flag to ON for the initial load. The
+report uses the default 2 days mentioned in the Refine Results form, so there
+is continuity across the board.
+
+"
 7401||"If there is only one branch configured in Koha, it doesn't make any sense to put
 a limiter on branchcode in search results.  Having a limiter on shelving
 locations within that branch, though, would be very handy.
 
 "
-7794||"table sessions has a UNIQUE KEY `id`, we should move to PRIMARY KEY
+7794||"Table sessions had a UNIQUE KEY `id`, that is moved to PRIMARY KEY.
+(There's no noticeable consequence to this change)
 
 "
-8454||"Currently, when you click  Holds to pull  from the Circulation menu, the only
-thing that you see is a white screen and a side navigation bar that says  Refine
-Results .
-
-Since there appear to be no results to refine, the holds to pull list appears
-completely empty. Staff have to know to click  Submit  on the  Refine Results 
-form to get anything.
-
-I propose that we have the  run_report  flag set to ON for the initial load. The
-report uses the default 2 days mentioned in the  Refine Results  form, so there
-is continuity across the board.
-
-"
-7652||"Created attachment 8030
-add item barcode on top of its editing form
-
-This patch displays the item barcode on top of its editing form. I think it's
+7652||"This patch displays the item barcode on top of its editing form. It's
 more useful for the common user than the itemnumber which has no practical sense
 for him.
 
 "
-8102||"DataTables in Acquisision module: supplier.tt
+5327||"The patches attached to this entry are related to unit tests developers
+run when a patch is added to Koha.
 
 "
-5327||"We need more unit tests!
+8102||"This patch add a DataTables filter in Acquisision module: supplier.tt
 
 "
-7671||"all select in accountlines are   WHERE borrowernumber = ? AND accountno=? . Best
-practice is to have an id. I'll add it and modify calls to accountlines to use
-it
+7671||"all select in accountlines are WHERE borrowernumber = ? AND accountno=?. Best
+practice is to have an id. This patch add id as identifier and modify calls to 
+accountlines to use it
 
 "
 8268||"Right now, if libraries with hosted installations want copies of the database
 for backup purposes, they have to request that their vendors provide them with a
-copy. It would be helpful if it were possible for vendors to easily enable their
-customers to easily download backups of the database via the Export tool.
+copy. With this feature, it is possible for vendors to easily enable their
+customers to easily download backups of their database via the Export tool.
 
 "
-7161||"Modified Open Library JS to:
+7161||"Modified Open Library javascript to:
 
-1. Use jscmd=data instead of default, this provides ebooks availability
-information. This will allow us to display read/borrow/checkedout icons
+  1. Use jscmd=data instead of default, this provides ebooks availability
+  information. This will allow us to display read/borrow/checkedout icons
 
-2. Show larger image in opac-detail page
+  2. Show larger image in opac-detail page
 
-3. Show read/borrow/checked-out status in opac-detail page below the image
-
-"
-7986||"Add filters and export button (iso2709 or csv) on issues table
-
-(ref biblibre: MT5671)
+  3. Show read/borrow/checked-out status in opac-detail page below the image
 
 "
-5911||"Transport Cost Matrix
+7986||"This patch add filters and export button (in iso2709 or csv format) on 
+issues table
+The export will export bibliographic and items informations, that can be put 
+on a USB key and given to your patron.
+If the patron is a library, he can import this file into his local ILS.
+(This is a common usage in France, where large library check-out hundreds of books
+for a long period to small villages)
 
-The system shall contain a new administrative page that serves to manage the
+"
+5911||"This patch add a new administrative page that serves to manage the
 relative costs of transporting an item between branches. “Cost” does not
 directly correspond to currency, but rather is a measurement of the difficulty
 of transporting the item between the two branches.
 
-For each branch, it shall be possible to specify a numeric value indicating the
+For each branch, it is possible to specify a numeric value indicating the
 'cost' of transporting the item from that branch to every other branch. A toggle
-shall also be available to block all transport from any branch to any other
-branch. The toggle shall not change the 'cost' value associated with the
+is also available to block all transport from any branch to any other
+branch. The toggle does not change the 'cost' value associated with the
 transport between any two branches.
-Filling Holds using the Transport Cost Matrix
 
-A system preference shall be added to control whether holds are filled using the
+A system preference has been added to control whether holds are filled using the
 Transport Cost Matrix, or not.
 
 If the system is configured to use the Transport Cost Matrix for filling holds,
 then when attempting to fill a hold, the system will search for the lowest cost
 branch, and attempt to fill the hold with an item from that branch first.
-Branches of equal cost shall be selected from randomly. The branch or branches
-of the next highest cost shall be selected from only if all the branches in the
+Branches of equal cost will be selected from randomly. The branch or branches
+of the next highest cost will be selected from only if all the branches in the
 previous group are unable to fill the hold.
 
-The system shall use the item's current holding branch when determining whether
+The system use the item's current holding branch when determining whether
 the item can fulfill a hold using the Transport Cost Matrix. This behaviour
-shall be overruled if the AutomaticItemReturn system preference is enabled.
+can be overruled if the AutomaticItemReturn system preference is enabled.
 
 "
-8801||"Will add a link in 'Edit' menu to go directly to batch deletion of items.
-
-"
-7500||"In order to reduce the number of image requests on the OPAC, perhaps it would be
+7500||"In order to reduce the number of image requests on the OPAC, it is
 advantageous to create a single PNG containing all the images tiled together,
-then use CSS values to 'mask' the unnecessary parts.  This could reduce the
+then use CSS values to 'mask' the unnecessary parts.  This reduce the
 overall page load time by several hundred milliseconds.  Not a significant
 percentage in the grand scheme of things, but every little bit counts.
 
-Thoughts?
+"
+8801||"This patch add a link in 'Edit' menu to go directly to batch deletion of items.
 
 "
-5345||"We will add table sorter & filters « everywhere » in Koha
-We will avoid adding sorters & filters where perf is a caveat (like circulation)
+5345||"Table sorter & filters have been added everywhere in Koha
+We avoid adding sorters & filters where perf is a caveat (like circulation)
 
 "
-8627||"Within field 008 pipe values (i.e. character   ) were not passed correctly in
-the plugin script value_builder/marc21_field_008_authorities.pl to the template,
-resulting in replacement of these character positions.
-
-Attached patch handles them correctly.
-Test this in Add/Edit authorities (staff) by:
-1 Without patch: Put   at the last position of 008 manually (overwrite last
-character). Click plugin (tag editor). Look at position 039 and click OK. You
-should have lost the pipe character.
-2 With patch. Again put   at the end (overwrite last character). Goto tag editor
-and look at pos 39. Click OK. You should still have a pipe char.
-3 Sign off.
+8627||"In MARC21, within field 008 pipe values (i.e. character   ) were not 
+passed correctly in the plugin script 
+value_builder/marc21_field_008_authorities.pl to the template, resulting 
+in replacement of these character positions.
 
 "
-8138||"Work to be done:
-* Add 773$t field if exists to
-  -  MARC21slim2intranetResults.xsl
-  -  MARC21slim2OPACResults.xsl 
-
-How to test:
-* Have a serial with 773$t field filled in. Check that it shows on intranet and
-OPAC search results
-
+8138||"This patch add MARC21 773$t field if exists to result list of both OPAC 
+and staff client.
+This require to have XSLT display activated 
 "
 8759||"We've had reports of patrons being confused by the lack of labels directly
-attached to the library and sorting pulldowns on the OPAC advanced search. It
-would be helpful if these pulldowns had explicit labels.
+attached to the library and sorting pulldowns on the OPAC advanced search.
+With this patch, these pulldowns have explicit labels.
 
 "
-7980||"If TagsInputOnList in enabled there is a  new tag  form field displayed with
-each search result. I propose to change this so that it behaves much like the
+7980||"If TagsInputOnList in enabled there was a new tag  form field displayed with
+each search result. This page change this so that it behaves much like the
 tag link at the top of search search results where clicking the link displays
 the form field.
 
-The per-line add tag functionality can be grouped with other  actions  (like
- place hold,   add to cart,  etc). Clicking the link would display the form and
+The per-line add tag functionality is grouped with other  actions  (like
+ place hold,   add to cart,  etc). Clicking the link display the form and
 automatically move the focus to the entry field.
 
 "
-7704||"Problem 1:
-Because we want to share our resources and let our branches place holds on any
-other branch's items, we have Independent Branches turned off. This also makes
-everyone's patrons searchable, editable and check-out-able to every other
-branch. Is there a way to make our items sharable but not our Patrons?
-
-Problem 2:
-Before migrating to this version of Koha, we never had a problem in sharing
-items even while IndependentBranches was on, by using the
-canreservefromotherbranches preference.  Once we migrated, we could still share
-items, it's just that the automatic transfer back to the owning branch does not
-take place.  We could get the hold, but we had trouble transferring the item
-home.  Because of these transfer problems, we have turned IndependentBranches
-off.
-
-Idea for solution:
-The idea here would be to adapt the existing Independent Branches system
-preference to let librarians choose which things they want to share
-(holds/items/patrons/other objects).  When this development is complete, it is
-still possible to transfer an item back to its home library with both
-IndependentBranches and canreserverfromotherbranches turned on.
+7704||"Before this patch, when independantbranches was ON and canreservefromotherbranch 
+was set to Allow, attempting to checkin the item at the other branch 
+is made, system disallows checkin. Now the item is checked in and an 
+automatic transfer to the home branch is setup.
 
 "
 7447||"
@@ -233,31 +180,25 @@ IndependentBranches and canreserverfromotherbranches turned on.
 7647||"With popular items the checkout history can be quite long and it is a challenge
 to sort through and find one libraries history of a book.
 
-Will put a table sorter on the checkout history.
+This patch put a table sorter on the checkout history.
 
 "
-7302||"CSV export of a basketgroup: add a CSV export option for the basket group
-(BibLibre MT5555)
+7302||"This patch adds CSV export for basketgroups
 
 "
-5549||"Koha 3.2's circulation loans are currently measured only in units of days.
-However, because some libraries, especially academic libraries, perform loans
-that are measured in minutes or hours, particularly for course reserves and
-short loans, it is necessary to modify Koha to perform all circulation and
-related transactions in units of minutes
-
-RFC on Wiki: http://wiki.koha-community.org/wiki/Hourly_Loans_RFC
+5549||"This patch fixes some problems to hourly loans features, that had been introduced
+in Koha 3.8
 
 "
-8028||"The tables on parcel.pl default to show only the first five items in the table,
-and librarians must click the a link to display all the items. Every time the
-page is reloaded, the table gets re-collapsed, and the librarian must again
-click the link. Parcel.pl should remember which way the table is set and keep it
+8028||"The tables on parcel.pl defaulted to show only the first five items in the table,
+and librarians had to click the a link to display all the items. Every time the
+page is reloaded, the table got re-collapsed, and the librarian had to click again.
+With this patch, parcel.pl now remember which way the table was set and keep it
 that way until it is changed again.
 
 "
-7839||"Adds a tab called  Routing Lists  into the Patron record between  Fines  and
- Circulation History .
+7839||"This patch adds a tab called  Routing Lists  into the Patron record between 
+Fines  and Circulation History.
 
 It lists all the subscription titles that the patron has routed to them. Each
 title has a link to the subscription record and a link to the edit window of the
@@ -265,127 +206,68 @@ routing list.
 
 "
 8405||"When displaying the result lists with xslt, the link to the detailed
-bibliographic record is hardcoded to the default view (detail.pl or opac-
-detail.pl) and there is no way to accomodate for the syspref value since it is
+bibliographic record was hardcoded to the default view (detail.pl or opac-
+detail.pl) and there was no way to accomodate for the syspref value since it was
 not taken into account in XSLT.pm.
-
-We will submit a patch so that we can test against the value of this syspref in
-our xslts.
- 
-IntranetBiblioDefaultView and BiblioDefaultView will be added to XSLT.pm.
-
+This patch make the default view available in the XSLT.
 "
-5335||"
+3087||"When marcflavour is UNIMARC, Koha Z39.50 used to return biblio records 
+in UNIMARC format. But it also returned that biblio record format
+is 'usmarc'. There is an incompatibilty. Z39.50 clients who interpret 
+this value won't display correctly biblio records.
+WARNING = All UNIMARC libraries must upgrade their zebra configuration and restart zebra,
+or searches will always return 0 results !!!
+Upgrading zebra is automatically done with 'make upgrade'. Libraries using git must go
+to the bugzilla entry to see what must be changed.
 
 "
 8089||"
 
 "
-3087||"
-
-
----- Reported by frederic@tamil.fr 2009-04-03 12:07:04 ----
-
-When marcflavour is UNIMARC, Koha Z39.50 returns biblio records 
-in UNIMARC format. But it also returns that biblio record format
-is 'usmarc'. There is an incompatibilty. Z39.50 clients who interpret 
-this value won't display correctly biblio records.
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:06 UTC  ---
-
-This bug was previously known as _bug_ 3087 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=3087
-
-Actual time not defined. Setting to 0.0
-
-
+5335||"Before this patch, VAT rate was defined at bookseller level. With this 
+new feature, The system preference gist is now a list of tax rates.
+Each bookseller has its own default tax rate, and, on each orderline, the 
+librarian can choose the tax rate to apply, the default being the bookseller
+default one.
 
 "
 8181||"Currently Koha uses a JavaScript calendar plugin from
 http://www.dynarch.com/projects/calendar/old/. This older version of the plugin
 is open source but is now unmaintained. The newer version is not open source.
 
-This plugin can be replaced by the jQueryUI datepicker widget:
-
+This plugin has been replaced by the jQueryUI datepicker widget:
 http://jqueryui.com/demos/datepicker/
 
 "
-8130||"We would like a feature that allows librarians to attach unlimited arbitrary
+8130||"This patch add a feature that allows librarians to attach unlimited arbitrary
 files to a patron record.
 
-Specifically, we want to store a PDF document with a patron record. They would
-be like the patron images, but for a document. We would like a link on the
-patron record that when clicked would open the PDF.
+It can be used to store a PDF document with a patron record.
 
 "
 8205||"For libraries which load complete authority files into their Koha installations,
 authority records which are not in use can overwhelm those that are in the
- Browse subjects and authors  in the OPAC. I propose to add an
-OPACShowUnusedAuthorities system preference that can be set to  off  so that the
-display can be limited to only those authorities referenced in the bibliographic
-database.
+ Browse subjects and authors  in the OPAC. This patch add an OPACShowUnusedAuthorities
+system preference that can be set to  off  so that the display can be limited to only
+those authorities referenced in the bibliographic database.
 
 "
-7563||"This is a proposition to implement silent printing for slips. 
+7563||"This patch implement silent printing for slips. 
 
 In opposition to the solution with an additional Firefox (Portable) installation
-(see: http://wiki.koha-
-community.org/wiki/Using_Portable_Firefox_as_a_Koha_Client), this solution works
-with the standard Firefox installation (+ PlugIn jsPrintSetup) .
+(see: http://wiki.koha-community.org/wiki/Using_Portable_Firefox_as_a_Koha_Client), 
+this solution works with the standard Firefox installation (+ PlugIn jsPrintSetup) .
 
 jsPrintSetup e.g. allows to set printer, print silent, change header and footer,
 see: http://jsprintsetup.mozdev.org/
 
-The overall concept is to have a new staff client preference where one can enter
-the necessary JavaScript.
+The overall concept is to have a new staff client preference(intranetslipprinterjs)
+where one can enter the necessary JavaScript.
 
-If this preference is empty, Koha falls back to te default behaviour.
+If this preference is empty, Koha falls back to the default behaviour.
 
-I did a proof of concept with the following steps: 
+Example of intranetslipprinterjs configuration:
 
---Step 1 --------------------------
-Add somewhere to staff_client.pref, 
-e.g. near intranetstylesheet:
-----------------------------------
--
-        -  Use the following JavaScript for printing slips. Define at least
-function printThenClose(). For use e.g. with Firefox PlugIn jsPrintSetup, see
-http://jsprintsetup.mozdev.org/: 
-	- pref: intranetslipprinterjs
-	  type: textarea
-	  class: code		
-----------------------------------
-(Suppose this will be pootleized to have translations?)
-
-
---Step 2---------------------------
-Add somewhere to moremember.pl:
-----------------------------------
-    $template->param( intranetslipprinterjs =>
-C4::Context->preference('intranetslipprinterjs' ) );
-----------------------------------
-
---Step 3----------------------------------------------
-Replace hard coded JavaScript function printThenClose() 
-in moremember-print.tt and moremember-receipt.tt with:
-------------------------------------------------------
-<script language= javascript >
-[% IF ( intranetslipprinterjs ) %]
-    [% intranetslipprinterjs %]
-[% ELSE %] 
-    function printThenClose() {
-        window.print();
-        window.close();
-    }
-[% END %] 
-</script>	
-
---Step 4----------------------------------------------------------------------
-Login to Koha, go to Home › Administration › System Preferences (Staff Client) 
-and edit the new field intranetslipprinterjs to print silent, set printer etc.
-------------------------------------------------------------------------------
 function printThenClose() {
  try
   {
@@ -417,115 +299,68 @@ catch(err)
   }
 } 
 
---Step 5---------------------------------------------
-...and install jsPrintSetup PlugIn in Firefox...
------------------------------------------------
-From now on, slips will print silently with Firefox and will show default
-behaviour
+if you've installed jsPrintSetup PlugIn in Firefox from now on, 
+slips will print silently with Firefox and will show default behaviour
 if jsPrintSetup is not installed or if you make use of an other browser. 
+
 All other printing will behave like before.
 
 "
-8597||"Created attachment 11448
-New theme for the OPAC
+8597||"This patch add a new theme for the OPAC, that includes a mobile version.
+This patch add the following system preferences:
+    * OpacMainUserBlockMobile - alternate content for the MainUserBlock for
+      mobile.
+    * OPACMobileUserCSS - custom CSS for mobile views only.
+    * OpacShowFiltersPulldownMobile - whether or not to show the index
+      dropdown on the mobile view.
+    * OpacShowLibrariesPulldownMobile - whether or not to show the library
+      dropdown on the mobile view.
 
-We created a new OPAC theme for our client and he agreed to share it with the
-community.
-This new theme also includes a mobile version using mediaqueries in another
-patch.
-
-How to install : 
-1. Add the image files found in the attached  images.zip  file to the  koha-tmpl
-/opac-tmpl/prog/images  folder.
-2. Apply the patch file on your Koha instance. This patch file includes new js
-and css files, and some template modifications.
-
-"
-7412||"Pre-filling of items: remember what was in the previous item filled, to be able
-to create multiple items quickly.
+In order to activate the theme, change the opacthemes syspref to 'ccsr' and make 
+sure that your opaccolorstylesheet is set to 'colors.css.'
 
 "
 7959||"The OPAC's suggestions list is similar to that of lists in that there is an
 action you can take directly (new suggestion) and an action you can take if
-items are selected (delete suggestion). The  toolbar  should match the one on
+items are selected (delete suggestion). The toolbar now match the one on
 lists in that the delete option should only be available if an item is selected.
 
 "
-7168||"Add the possibility to search orders by the basket group name
-
-BibLibre infos:
-  Repository: git://git.biblibre.com/koha_biblibre.git
-  Branch:     itt/ft/MT6881
-
-"
-3462||"
-
-
----- Reported by nengard@gmail.com 2009-07-31 18:15:57 ----
-
-Created an attachment
-authority search from cataloging record
-
-It would be nice is the see also statements in Authorities were linked to the
-authority they were referencing.  See attached images.
-
-
-
----- Additional Comments From nengard@gmail.com 2009-07-31 18:16:19 ----
-
-Created an attachment
-authority search
-
-
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:10 UTC  ---
-
-This bug was previously known as _bug_ 3462 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=3462
-Imported an attachment (id=1315)
-Imported an attachment (id=1316)
-
-Actual time not defined. Setting to 0.0
-The original submitter of attachment 1315 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-The original submitter of attachment 1316 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-
-
+7412||"Pre-filling of items: remember what was in the previous item filled, to be able
+to create multiple items quickly.
+By default, all subfields are prefilled when the PrefillItem syspref is on, unless 
+you specify which fields you want to prefill in the SubfieldsToUseWhenPrefill syspref.
+For example, with a value of 'f u v', only the $f, $u and $v will be prefilled.
 
 "
-7977||"This feature will add the option of displaying a select quote
-for the day on the OPAC homepage. It will include the addition
+7168||"This patch add the possibility to search orders by the basket group name
+
+"
+7977||"This patch add the option of displaying a select quote
+for the day on the OPAC homepage. It include the addition
 of a QOD editor in the tools section of the staff interface
-which will allow the addition, editing, and deletion of quotes.
-A single system preference will enable/disable the display of
-the QOD on the OPAC homepage. A new granular permission will
-also be added to conrol user access to the QOD editor tool.
+which allow the addition, editing, and deletion of quotes.
+A single system preference enable/disable the display of
+the QOD on the OPAC homepage. A new granular permission has
+also been added to control user access to the QOD editor tool.
 
-Possible extentions to this would be code to allow alternate
-quote selection algorithms to be added to vary how the currently
-displayed quote is selected from the table of quotes.
+"
+3462||"The see also statements in Authorities are linked to the
+authority they were referencing
+
+"
+8768||"
+
+"
+8106||"This patch add a DataTables filter in Acquisision module: addorderiso2709.tt
 
 "
 8223||"
 
 "
-8106||"DataTables in Acquisision module: addorderiso2709.tt
-
-"
-8768||"ItemType.t fails because the second test attempts to retrieve a non existent
-result set causing an error in DBI
-The intention of the test is that all returns 0 on an empty table so DBD::Mock
-should be populated with an empty result set otherwise the test suite fails
-
-"
-7621||"The problem
------------
-Public libraries and school libraries often have to deal with a lot of age
-restrictions, e.g. wit FSK (see www.fsk.de) or PEGI (Pan European Game
-Information, see www.pegi.info) and/or with regional rules regarding movies
+7621||"Public libraries and school libraries often have to deal with a lot of age
+restrictions, [e.g. FSK (see www.fsk.de) or PEGI (Pan European Game
+Information, see www.pegi.info)] and/or with regional rules regarding movies
 (virtually every canton in Switzerland has it's own rules).
 
 The classic way to implement age restrictions is to make use of a lot of
@@ -533,13 +368,12 @@ categories. This gets soon very complicated, and is not easily maintainable. The
 librarians need an easy way to maintain age restrictions per title, otherwise
 they will not accept Koha.
 
-I tried to find a robust ad easily configurable way to match age restriction
-against the borrower's age. I implemented it on my test server.
+This patch adds a robust and easily configurable way to match age restriction
+against the borrower's age.
 
 The concept
------------
 1) 
-Have information about age restriction in field 521 a (Target audience)
+Have information about age restriction in a field (521$a Target audience is suggested)
 The entry can be anywhere in the field. It reads like
 PEGI 3 or FSK 12 (or any other 'tag' + age).
 
@@ -547,42 +381,32 @@ PEGI 3 or FSK 12 (or any other 'tag' + age).
 Have a preference like 'AgeRestrictionTags' where such tags are defined. It is a
 text field with a list like
 PEGI,FSK,Age...
-(Make things robust by accepting ,;: and space as delimiters...)
 
 3)
-In circulation.pm, sub CanBookBeIssued, fetch the value from 521 a using the
-tags above. If the text after such tag is numeric, take this value as
-$restrictionyear. Add the years to the borrower's birth date. If the resulting
-date is in the future ( >today) , issuing is blocked by setting
-$issuingimpossible{AGE_RESTRICTION} =  $restrictionyear;
+Update your MARC cataloguing frameworks to link the 521$a (or any other one) to
+biblioitems.agerestriction.
 
 4)
-In circulation.tt, part , add:
-
-[% IF ( AGE_RESTRICTION ) %]
-   <li>Age restriction [% AGE_RESTRICTION %]</li>
-[% END %]	
-
-Result
--------
+Add a limit into a biblio record, for example PEGI 12, if you've defined PEGI in 
+AgeRestrictionTags
 If a borrower tries to check out a restricted book and does not have the
 appropriate age, the circulation module will block the check out and issue a
 message like
  Age restriction 12 
 
 "
-8216||"Paul remarked in relation to pushing a fix for another bug that SIP modules
-continued to issue a number of perlcritic warnings. This patch will add C4/SIP
-to the testcritic diirectories and address those issues which are warnings
-(mainly return undef and subroutine prototypes) it also removes some dead code
-that was no longer used.
+8216||"SIP modules continued to issue a number of perlcritic warnings. 
+This patch add C4/SIP to the testcritic diirectories and address those 
+issues which are warnings (mainly return undef and subroutine prototypes)
+it also removes some dead code that was no longer used.
 
 "
-8485||"I propose adding a switch to the koha_perl_deps.pl script so it is more batch
-friendly. I propose -B (for batch) and make it output just the library name,
+8485||"This patch add a switch to the koha_perl_deps.pl script so it is more batch
+friendly. 
+The new parameter -B (for batch) make it output just the library name,
 preserving the other switches semantics.
 
-It could be useful to do things like:
+It is useful to do things like:
 
 for k in $(for i in $(./koha_perl_deps.pl -m -B   perl -pi -e 's/::/-/g'   tr
 '[A-Z]' '[a-z]')
@@ -593,45 +417,38 @@ do
  apt-cache search $k
 done
 
-(fix it) to maintain a list of debian packages needed, and stuff like that.
+"
+8649||"This patch add unit tests for searching
 
 "
-8649||"Due to the size of the patch, it seems better to put this test on a separate bug
-than 5327 where other unit tests for C4 are going.
+7955||"This patch add a tab (in the patron module) with statistics (number
+of issues by document type,...)
 
 "
-7955||"It would be great to have a tab (in the patron module) with statistics (number
-of issues by document type)
+8092||"This patch add CHI support for cachin and its already-existing cache drivers.
 
 "
-8092||"Rather than directly accessing Memcached, etc., we should use CHI and its
-already-existing cache drivers.
+7729||"The svc new_biblio and biblio scripts and now create item as well
 
-"
-7729||"The svc new_biblio and biblio scripts delete items, but it's not clear why. Item
-creation over svc is a desirable option.
-
-The svc API should also support deletion of items - maybe using HTTP DELETE
+The svc API also support deletion of items - maybe using HTTP DELETE
 method.
 
 "
-8178||"
+8178||"This patch fixes some Plack errors in circulation
 
 "
-8585||"When you are on the  Holds to Pull  page in the Circulation module, the default
- Start Date  in the  Refine Results  section is 2 days in the past.
+8585||"When you are on the  Holds to Pull  page in the Circulation module, the
+default Start Date  in the  Refine Results  section is 2 days in the past.
 
-I plan to introduce a system preference that changes the number of days to
+This patch introduce a system preference that changes the number of days to
 however many the librarian chooses. If the system preference isn't set, the
 default of 2 days will continue to be used.
 
 "
-6494||"It would be great if the opacmysummaryhtml also showed on the reading history
+6494||"The opacmysummaryhtml is also showed on the reading history
 since it's pretty much a longer version of the my summary anyway.  If not that
 preference, then another preference like it specifically for the reading
 history.
-
-Nicole
 
 "
 7949||"At the moment the favicon used in the staff client is the same as the one for
@@ -639,156 +456,104 @@ the opac. A different one would make it more legible when having both opened in
 various tabs.
 
 "
-7398||"Like on the staff client, it should be possible to show the number of holds
-currently on a title.  This will allow patrons to know how long a wait is going
+7398||"Like on the staff client, it is now possible to show the number of holds
+currently on a title. This will allow patrons to know how long a wait is going
 to be without having to log into the OPAC.
-
-Work to be done:
-
-* Add a new system preference, OPACShowHoldsCount, that will control whether the
-total number of holds shown on the OPAC detail page or not.  Summon this syspref
-on the opac-detail page, and pass to the template
-
-* Add call to GetReservesfrombiblionumber.  Take the holdcount return variable,
-and pass it to the template.
-
-* Edit opac-detail.tt to check for OPACShowHoldsCount, and if it's true, display
-the number of holds in a div similar to the one used staff-side
-
-* Edit the opac.css to properly and aesthetically display this new div
+This patch add Add a new system preference, OPACShowHoldsCount, that will
+control whether the total number of holds shown on the OPAC detail page or not.
 
 "
-7792||"table branches has a UNIQUE KEY `branchcode`, we should move to PRIMARY KEY
+7792||"The table branches had a UNIQUE KEY `branchcode`, that is moved to PRIMARY KEY
+(There's no noticeable consequence to this change)
 
 "
-8099||"DataTables in Acquisision module: acqui-home.tt
+8099||"This patch add a DataTables filter in Acquisision module: acqui-home.tt
 
 "
 8185||"In cataloguing/value_builder there is a plugin for linking records.
-But is only for unimarc  (unimarc_field_4XX.pl).
-We need a plugin also for MARC21
+But is only for unimarc  (unimarc_field_4XX.pl), this patch add a plugin for MARC21.
 
 "
-4321||"
-
-
----- Reported by nahuel.angelinetti@biblibre.com 2010-03-18 13:27:03 ----
-
-This function of C4::Biblio API is badly coded...
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:25 UTC  ---
-
-This bug was previously known as _bug_ 4321 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=4321
-
-Actual time not defined. Setting to 0.0
-Setting qa contact to the default for this product.
-   This bug either had no qa contact or an invalid one.
-
-
+4321||" This function of C4::Biblio API is badly coded, this patch fixes it
 
 "
-7065||"The reserves (and old_reserves) tables desperately need a primary key.
+7065||"The reserves (and old_reserves) tables need a primary key.
 reservernumber should be used for consistency sake.  This will allow the
 possibility of multiple holds per biblio/patron combination, and a host of other
 improvements.
-
-This is included in bug 5872, but needs to be broken out into it's own
-enhancement for independent review.
-
-One cavaet: the values must be unique across the union of reserves and
-old_reserves.  While this is easy enough to achieve in a new installation,
-adding the values into an existing install gets trickier.
-
-"
-2060||"
-
-
----- Reported by nengard@gmail.com 2008-04-28 08:16:24 ----
-
-<nengard> is there a way to import an authorities file into Koha? Or do you have
-to add all the records one by one?
- * fbcit-away is now known as fbcit
- <fbcit> nengard: yes to the first, holdon
- <nengard> thanks fbcit
- <fbcit> there is a script, misc/migration_tools/bulkauthimport.pl
- <fbcit> you can import 1 or more records with it
- <nengard> fbcit is there a way to access that for the average user? a link in
-the admin menu anywhere? Just wondering fo the manual
- * fbcit thinks there should be a nice feature in the staff-client to do it
- <nengard> fbcit - ahh
- <fbcit> afaik there is no way to import from inside Koha
- <fbcit> it would not be too hard to add, though
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 00:37 UTC  ---
-
-This bug was previously known as _bug_ 2060 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=2060
-
-Actual time not defined. Setting to 0.0
-CC member bchurch@ptfs.com does not have an account here
-
-
 
 "
 8208||"Right now if you want to link a heading to a new authority record, you have to
 either use BiblioAddsAuthorities to automatically generate the authority, or
 create a new authority in the authority module, and wait for the indexer to
-catch up. There should be a  create authority  button that -- like the fast add
+catch up. This patch add a create authority button that -- like the fast add
 functionality in circ -- allows you to create an authority and immediately
 populate the heading.
 
 "
+2060||"This patch add a feature to import authority record files.
+The biblio records staging and importing into the catalogue has been extended to handle 
+authorities.
+The matching rules have also be extended to handle authorities.
+
+"
 8080||"When creating a new patron, if you have chosen to let your browser remember your
 login and password for you, the login and password fields will be pre-filled
-with them, leading to a systematic error  the passwords entered do not match 
+with them, leading to a systematic error the passwords entered do not match 
 since the second password field was not filled.
 
-These fields should be blank.
+With this patch, these fields are always blank.
 
 "
 8256||"At the moment, reports cannot be selected from the reports webservice by name,
-only by report ID. It would be very useful to be able to select a report by
-name.
+only by report ID. This patch add the feature to select a report by name.
+
+"
+5357||"This patch improve many ergonomic aspects of the serials module:
+* The search page is improved and some fields are added to search on
+(issn, subscription number, library, internal note, callnumber).
+* The subscription list result is modified. The pipe will be removed in case
+of a repeated title & issn (the title & issn are repeated).
+* The internal note was not displayed on staff interface. It is now displayed in
+serial issues and in various places where it can be usefull.
+* An option has been added to limit subscription search by branch.
 
 "
 7990||"bad html attribute into aqplan.tt : styl= insted of style=
 
 "
-5357||"* The search page will be improved and some fields will be added to search on
-(issn, subscription number, library, internal note, callnumber)
-* The subscription list result will be modified. The   will be removed in case
-of a repeated title & issn (the title & issn will be repeated)
-* The internal note is not displayed on staff interface. It will be displayed in
-serial issues and in various places where it can be usefull
-* An option will be added to limit subscription search by branch
+5339||"A new feature has been added to enable closing of a parcel.
+Once a parcel is closed, no item can be added.
+When the librarian closes a parcel, invoice informations can be entered.
+Invoice detail includes:
+    - shipment date
+    - billing date
+    - shipment cost and budget used for shipment cost
 
 "
-5339||"A new feature will be added to enable closing of a parcel. Once a parcel is
-closed, no item can be added.
+7213||"This patch add a script that can be used from commandline to play with
+the svc/ API for integrating biblio records into Koha.
+This script can be used from other scripts as C<Koha::SVC> module or run
+directly using syntax:
+  koha-svc.pl http://koha-dev:8080/cgi-bin/koha/svc svc-user svc-password 
+  $biblionumber [bib-42.xml]
+
 
 "
-7213||"I started documentation about /svc/ API in Koha at http://wiki.koha-
-community.org/wiki/Import_MARC_to_Koha
+8206||"The OPAC authority browser used to have several boxes for the different types of
+authority searches that are possible. This was confusing to users, and rather
+ugly. However, the additional options were useful for libraries with massive
+authority files. This patch add a dropdown to the authority search page on the
+OPAC which can be easily hidden using CSS, but offers the option to choose
+whether to look in main entries, headings, or anywhere.
 
 "
 8117||"Budget periods are now divided into two tabs : active and inactive
 budget periods.
 
 "
-8206||"The OPAC authority browser used to have several boxes for the different types of
-authority searches that are possible. This was confusing to users, and rather
-ugly. However, the additional options were useful for libraries with massive
-authority files. I propose adding a dropdown to the authority search page on the
-OPAC which can be easily hidden using CSS, but offers the option to choose
-whether to look in main entries, headings, or anywhere.
-
-"
-8412||"My goal here is to make it so that libraries can use one of the authorized
+8412||"This patch add coloring images to ccodes.
+The goalis to make it so that libraries can use one of the authorized
 values (shelving location or collection code) to store the color of the material
 and then make that searchable on the advanced search page.
 
@@ -812,117 +577,66 @@ $('#item_ccode').text( Color );
 
 And update the frameworks to change the 952$8 label to say Color.
 
-I'll add this tip to a blog post and to the manual once this set of icons has
-been pushed to Koha.
-
 Obviously this patch just has images, no code.
 
 "
-7248||"Created attachment 6353
-Moved Cache and Memcahed, added syspref and sql entry
-
-Some changes from
-https://github.com/ranginui/koha/commit/2a1f4172dafbfb7435e46762fcfab368d3dceb7a
-
-and adding syspref and appropriate database entry.
+8202||"This patch add the feature to export authorities in the export tool
 
 "
-7991||"Display in a holding summary tab informations about serial record
+7991||"This patch display in a holding summary tab informations about serial
+record.
+It is UNIMARC specific, and probably french-specific.
 
-branch (955$9)
-holding summary (955$r)
-call (930$a)
+It add the following fields: branch (955$9), holding summary (955$r) and
+call (930$a).
 
-Informations imported from SUDOC
+which are informations imported from SUDOC (french universities common
+catalogue)
 
 example :
 http://catalogue.univ-aix-marseille.fr/cgi-bin/koha/opac-
 detail.pl?biblionumber=725747
 
 "
-8202||"Right now it is not possible to export authorities from the staff client. It
-should be possible to export authorities using the export tool.
+7248||"This patch move all caching services to the Koha namespace
+This patch is a first step that will let us add more caching services to 
+improve speed and scalability.
+This patch work in cunjunction with 8089 and 8092
 
 "
-7788||"First patch deals with two unused calls to GetShelf in opac/opac-
-downloadshelf.pl and virtualshelves/downloadshelf.pl.
-Just removes them. Test by running these two scripts again.
+7788||"This patch just clean and remove some dead code:
+First patch deals with two unused calls to GetShelf in
+opac/opac-downloadshelf.pl and virtualshelves/downloadshelf.pl.
 
 "
-8167||"
+8283||"This patch continues the work to eliminate usage of YUI by using jQuery
+Cookie plugin instead of YUI Cookie..
 
 "
-7420||"Capped charge is applied per item.
-
-Work to be done:
-* Add a numeric overduefinescap field to the issuingrules table
-* Add  Overdue Fines Cap  section at the bottom of the Corculation Rules page,
-inputs:
-  -  item type
-  -  patron category
-  -  cap in $ or whatever currency
-* C4::Overdues::UpdateFine() - observe overduefinescap rule when updating
-overdue charges - leave the charge at overduefinescap if it goes over
-* create tests
-
-How to test:
-* Check that new field values stick when maintained on the circ rules matrix
-page
-* Check that the cap is applied. This is a tricky one. A quick test would be:
-  -  set the cap to a value less then the overdue charge
-  -  have an overdue item
-  -  run fines.pl cronjob
-  -  check that the capped charge is applied
-A more complex test would be to set the cap anywhere between one day charge and
-two day charges, and run fines.pl cronjob on two consecutive days, but I'm not
-sure how practical it is, or is it possible to have a testing facility that can
-push the date forward
+8210||"There should be a link to used authority records from the bibliographic
+details display. This is already done in 5888 for the  normal  display.
 
 "
-3708||"
-
-
----- Reported by oleonard@myacpl.org 2009-10-13 15:38:57 ----
-
-Created an attachment
-Diagram of the proposed change
-
-Currently the area taken up by the login form on the OPAC home page cannot be
-customized in any way (except via CSS). I propose we add another region to the
-OPAC main page similar to OpacMainUserBlock: a region which will only appear on
-the home page. The contents of the region would appear below the login form if
-there were no logged-in user. If the user is logged in, the right sidebar region
-would move up to fill the space vacated by the login form.
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:14 UTC  ---
-
-This bug was previously known as _bug_ 3708 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=3708
-Imported an attachment (id=1529)
-
-Actual time not defined. Setting to 0.0
-CC member biblioteca@casabalthasar.org does not have an account here
-The original submitter of attachment 1529 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-
-
+3708||"This patch creates a new system preference, OpacNavRight, in
+which the librarian can add HTML which will appear on the OPAC
+main page under the login form. If the user is logged in the content
+will appear in place of the login form.
 
 "
-8210||"There should be a link to used authority records from the bibliographic details
-display. This is already done in 5888 for the  normal  display.
+7420||"This patch add capped charge per item.
+It add Overdue Fines Cap section at the bottom of the Circulation
+Rules page, inputs for item type, patron category.
 
 "
-8283||"Since we're eliminating usage of YUI, we should convert JavaScript which uses
-the YUI Cookie utility for reading and setting cookies. We already use a jQuery
-Cookie plugin elsewhere in Koha (although it is independent of jQueryUI), so it
-seems logical to unify cookie management under it.
-
-The only affected script is js/pages/batchMod.js
+8167||"This patch add a system preference IssueLostItem to define the 
+behaviour in case of issuing a 'lost' item:
+    - do nothing (checkout without any warning).
+    - request for confirmation.
+    - issue a non-blocking warning.
 
 "
-6566||"Small script that checks that each biblio in the DB is properly indexed.
+6566||"This patch add a small script that checks that each biblio in the DB is
+properly indexed.
 
 parameters:
 \th this help screen
@@ -932,70 +646,65 @@ parameters:
 warn every 1000 biblios to show progress
 
 Syntax:
-\t./batchCheckNonIndexedBiblios.pl -h (or without arguments => shows this
-screen)
-\t./batchCheckNonIndexedBiblios.pl -c (c like confirm => check all records (may
-be long)
-\t-t => test only, change nothing in DB
-
+\t./batchCheckNonIndexedBiblios.pl -h
+\t./batchCheckNonIndexedBiblios.pl -c
 "
-5337||"In acquisition module, scanning an EAN will result in a correct search
+7993||"This patch introduce grouping and subgroupig for SQL reports.
+Libraries:
+  -  can create themselves their topics (no pre-defined grouping)
+  -  can move report from a hierarchy to another (modify)
+  -  have 2 level of hierarchy available
 
-"
-8431||"Some libraries would like to store more verbose data in a borrower attribute
-field. I think it would be reasonable to up the character limit from 64 to 255.
+This patch add 2 authorised value lists:  GROUP and SUBGROUP.
+When you register or modify a report, you first choose a  group  (code) and 
+then a subbgroup  (lib_opac wich represent the link between both).
 
-"
-7993||"1/For the customer:
-  -  They wants to create themselves their topics (no freezed topics)
-  -  He could move report from a hierarchy to another (modify)
-  -  They need 2 level of hierarchy
+Example:
+GROUP.
+Code lib lib_opac.
+CIRC Circulation PRT.
+CIRC Circulation RET.
+CAT Cataloguing BIB.
+CAT Cataloguing EX.
+CAT Cataloguing AUT.
+...etc.
 
-Suggests to use 2 authorised value lists:  GROUP   SUBGROUP 
-When you register or modify a report, you first choose a  group  (code) and then
-a  subbgroup  (lib_opac wich represent the link between both).
+SUB_GROUP.
+Code lib lib_OPAC.
+PRT Check-outs CIRC.
+RET Check-ins CIRC.
+BIB Biblios BIB CAT.
+EX Biblio EX CAT.
+AUT Biblio AUT CAT.
 
-Liste N1 : GROUP
-
-Code lib lib_opac
-CIRC Circulation PRT
-CIRC Circulation RET
-CAT Catalogage BIB
-CAT Catalogage EX
-CAT Catalogage AUT
-...etc
-
-Liste N2 : SUB_GROUP
-
-Code lib lib_OPAC
-PRT PRETS CIRC
-RET RETOURS CIRC
-BIB NOTICES BIB CAT
-EX NOTICES EX CAT
-AUT NOTICES AUT CAT 
-
-2 / From  Summary and Statistics  when saving the report, a proposal from the
+From Summary and Statistics  when saving the report, a proposal from the
 list of tabs (hierarchy) to classify the report as a topic of their choice.
 
-3 / From .../cgi-bin/koha/reports/guided_reports.pl?phase=
+Other changes introduced by this patch:
+* From .../cgi-bin/koha/reports/guided_reports.pl?phase=
 First show the top of hierarchies as tabs and then clicking on the opening of
 the hierarchy.
-Reports will be provided in a table with headers that are sortable.
+Reports are provided in a table with headers that are sortable.
 
+* After you save the report ( .../cgi-bin/koha/reports/guided_reports.pl )
+there is now a link from this page 'Start the new report'.
 
-4 / After you save the report ( .../cgi-bin/koha/reports/guided_reports.pl ) add
-a link from this page 'Start the new report'.
-
-5 / Keep the link  Reports saved  under
+* Keep the link  Reports saved  under
  .../cgi-bin/koha/reports/guided_reports.pl?phase=
 But adding to the table  standard  one column  Posted in  going back the way the
 report is filed.
-Columns should also be sortable.
+
+* Columns are also sortable.
 
 "
-7747||"In order to make the transition to jQueryUI easier to test and get approval for,
-I will submit my jQueryUI work one  widget  at a time: autocomplete, tabs,
-datepicker, etc. First will be autocomplete as it touches the fewest files.
+8431||"Some libraries like to store more verbose data in a borrower attribute
+field. The character limit has been improved from 64 to 255.
+
+"
+5337||"In acquisition module, scanning an EAN result in a correct search
+
+"
+7747||"This patch introduce jQueryUI in Koha, widget autocomplete.
 
 "
 7926||"Search results in acquisition show a column for basket group with  name of
@@ -1003,10 +712,12 @@ basket group (basket group number)  that will only be () when there is no basket
 group for an order line.
 
 "
-7613||"Work to be done:
+7613||"This patch add OCLC Connexion Gateway, including extension svc/import_bib
+to let libraries populate their catalogue with OCLC (or other) external sources.
+This patch includes:
 * C4::ImportBatch: create sub GetImportBatchByFilename($filename) which will get
 the last import_batches record with the filename
-* Create svc/import_bib
+* svc/import_bib:
   -  POST request structure:
 param1: val
 param2: val
@@ -1022,328 +733,190 @@ status use it, otherwise create new one AddImportBatch() using POST param
   -  call C4::ImportBatch::GetImportBatchByFilename( webservice ); if in 'stage'
 status
   -  call C4::ImportBatch::BatchCommitBibRecords()
-* create OCLC requests listening daemon connexion_import.pl
+* OCLC requests listening daemon connexion_import.pl
   -  base on HTTP::Server or similar
   -  command line params: config file
   -  config values as per spec
   -  first get the auth cooki from auth url, then make request to import url
 
-How to test:
-* using some tool (wget or curl) make a request with some MARC xml to OCLC
-daemon
-* check koha import batches that a webservice batch is created with params as in
-the config file
-* run cron job from the command line and check the batch status
-
 "
-4460||"
-
-
----- Reported by matted-34813@mypacks.net 2010-05-06 14:43:33 ----
-
-Though koha enables usage of Amazon's AssociateID tag, in the enhanced content
+4460||"Though koha enables usage of Amazon's AssociateID tag, in the enhanced content
 configuration.  No code currently uses it when generating links to Amazon.  Thus
 if a person searching the catalog clicks on a link taking them to Amazon for a
 purchase, Amazon doesn't have the tag and cannot associate the account
 accordingly.  Thus, any possible revenue is lost.
 
-Places where the tag might be able to be appended:
-- When viewing the item details, the book cover art link might be able to have
-the tag appended.
-- The same might be true for other Amazon related links that koha generates.
-
-See:
-http://developer.amazonwebservices.com/connect/entry.jspa?externalID=636
-for more info to help integrate.
-
-Usually &tag= with the associate id following it is what is needed, but further
-investigation will be needed.
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:27 UTC  ---
-
-This bug was previously known as _bug_ 4460 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=4460
-
-Actual time not defined. Setting to 0.0
-The original reporter of this bug does not have
-   an account here. Reassigning to the person who moved
-   it here: chris@bigballofwax.co.nz.
-   Previous reporter was matted-34813@mypacks.net.
-Setting qa contact to the default for this product.
-   This bug either had no qa contact or an invalid one.
-
-
+"
+8477||"This patch add home and holding branch display when checking in an item.
 
 "
-8477||"It would be very useful for some librarians to see the home branch and holding
-branch of an item when checking in.
-
-"
-8655||"The administration home page says  Configure these parameters in the order they
-appear,  but cities and road types appear before circulation and fine rules.
+8655||"This patch reorders the administration home page for a better usability:
+The administration home page says  Configure these parameters in the order they
+appear, but cities and road types appear before circulation and fine rules.
 Circ rules have a higher priority.
 
 "
 7351||"The new feature that allows you to enter a range of holidays does not let you
 edit the range. So if you have a long range of dates and you messed up you have
-to edit them one by one.  A way to edit/delete a range of dates would be nice.
+to edit them one by one. This patch add a way to edit/delete a range of dates.
 
 "
-8757||"Authorised Values have many uses, and, among others things, store in SUGGEST the
+8757||"This patch improve the size of authorised values descriptions.
+Authorised Values have many uses, and, among others things, store in SUGGEST the
 potential  reasons  (then stored in the  suggestions  table) for which a
 suggestion can be refused.
 To give better informations to borrowers, some librairies would like to see
 longer  lib_opac  fields (the  lib  field should follow the movement, of
-course).
-
-Knowing the many uses of AV, and the fact that some languages may need more
-words than others ton convey a message, the length of these lib fields could be
-made longer (maybe 200 or 250 chars).
+course), this patch make this field 255 chars long.
 
 "
 8063||"The gather_print_notices.pl cronjob for printing hold notices mails all notices
 as one file and does not separate out the notices by branch.  For libraries with
 multiple branches this results in large files being received by individual
 branches that need to be read/sorted/printed or ignored.
+This patch add a --split (or -s) parameter to gather_print_notices.pl that
+let the library create a separate file for each (borrower) branch
 
 "
-8524||"The current barcode plugin uses the autobarcode syspref to decide which type of
-barcode to generate, then *always* inserts a barcode. There should be a plugin
-which will only insert the barcode when the plugin link is clicked.
+8524||"The current barcode plugin uses the autobarcode syspref to decide 
+which type of barcode to generate, then *always* inserts a barcode. 
+This patch add a plugin which will only insert the barcode when the plugin 
+link is clicked.
 
 "
-7757||"In the Acquisitions module, add the ability to change the vendor for an
+7757||"This patch add the ability to change the vendor for an
 individual basket.
 
 "
-7470||"We did a new implementation of babeltheque in koha, more complete and better
-intergrated (for the moment in community version, babeltheque is not
-configurable and hardcoded in opac-bottom.inc).
+7470||"This patch make a new implementation of babeltheque in koha, more 
+complete and better integrated (for the moment in community version,
+babeltheque is not configurable and hardcoded in opac-bottom.inc).
 
-3 features in this one:
+There are 3 features in this one:
 - adds social network information in search results
 - adds babeltheque data in opac-detail
 - adds social network links in opac-detail too (google+, twitter, mail and co.)
-
-
-This dev is in production in 2 of our customes (co-funder).
 
 French article with screenshots: http://docmiop.wordpress.com/2012/01/18/quand-
 babeltheque-enrichit-koha/
 
 "
-4246||"
+4246||"Implements support for Talking Tech I-tiva phone notification for 
+OVERDUE,  PREDUE and HOLD notifications.
+Overdues respect triggers as configured for the patron's branch.
+Predue and Holds notifications respect patron's messaging preference choices.
+A new column for phone notification is added if the 
+TalkingTechItivaPhoneNotification system preference is turned on.
 
+Record of phone messages being sent to patrons is added to the patron's
+Notices tab; notice of success or failure can be retrieved from I-tiva.
 
----- Reported by jwagner@ptfs.com 2010-02-23 14:24:23 ----
-
-Sponsored by Middletown Township Public Library, Middletown, NJ, USA.
-
-We have written a subroutine in Koha that will adds/appends data to a csv file
-when a notice (hold or overdue) is created.  The format of this file was
-specified by Talking Tech.  A cronned script uploads this file to the Talking
-Tech server where the phone calls are then generated.  The script also runs a
-second time in the evening to grab the results of the automated phone calls.  If
-patrons renew books etc. via the phone system, the update is loaded into Koha
-with a SIP transaction.
-
-
-
----- Additional Comments From jwagner@ptfs.com 2010-05-12 13:59:06 ----
-
-The fix for this bug (in ptfs-harley) can be pulled from the public git
-repository at http://github.com/Koha-PTFS, branch http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=4246
-
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:24 UTC  ---
-
-This bug was previously known as _bug_ 4246 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=4246
-
-Unknown operating system Windows 2000. Setting to default OS  All .
-Actual time not defined. Setting to 0.0
-The original reporter of this bug does not have
-   an account here. Reassigning to the person who moved
-   it here: chris@bigballofwax.co.nz.
-   Previous reporter was jwagner@ptfs.com.
-The original assignee of this bug does not have
-   an account here. Reassigning to the default assignee
-   for the component, gmcharlt@gmail.com.
-   Previous assignee was kohaprogrammers@ptfs.com.
-Setting qa contact to the default for this product.
-   This bug either had no qa contact or an invalid one.
-Bug reassigned, setting status to  NEW .
-   Previous status was  ASSIGNED .
-CC member jwagner@ptfs.com does not have an account here
-
-
+See the TalkingTech.README for installation and set-up instructions.
 
 "
-7675||"On some Linux distributions like RedHat, Fedora, CentOS you can use SELinux for
-enhanced security. Among others, this involves file labeling (security context).
+7675||"On some Linux distributions like RedHat, Fedora, CentOS you can use
+SELinux for enhanced security. Among others, this involves file labeling
+(security context).
 In other distributions SELinux can be installed additionally.
 
-The attached script xt/set-selinux-labels lets you update and restore such
-labels on the perl script in a Koha installation.
+The script added by this patch xt/set-selinux-labels lets you update and
+restore such labels on the perl script in a Koha installation.
 Note that there is more to it to get Koha running with SELinux, but this is a
 first step.
 
 "
-3461||"minor"
-8496||"It would be nice if local cover images showed when looking at lists in the opac.
+3461||"trivial"
+8496||"This patch add local cover images at lists in the opac.
 
 "
-3374||"
-
-
----- Reported by oleonard@myacpl.org 2009-06-29 14:01:31 ----
-
-Created an attachment
-Proposed change
-
-In my opinion a patron's  Additional attributes and identifiers  should display
-in the same format as other standard patron data: in a list of label/data pairs.
-I've submitted a patch to accomplish this, but would like to solicit more
-opinions.
-
-
-
----- Additional Comments From oleonard@myacpl.org 2009-06-29 14:02:04 ----
-
-Created an attachment
-Display of patron attributes on moremember.pl
-
-
-
-
-
----- Additional Comments From oleonard@myacpl.org 2009-06-29 14:03:20 ----
-
-Created an attachment
-Patron attributes edit view
-
-
-
-
-
----- Additional Comments From gmcharlt@gmail.com 2009-06-29 14:11:47 ----
-
-From my koha-patches posting:
-
-I have reservations about this one.  The tabular view for editing
-patron attributes is more vertically compact than the list view, and
-some of our users assign a lot of patron attributes.  Opinions?
-
-
-
----- Additional Comments From nengard@gmail.com 2009-06-29 14:25:07 ----
-
-Can someone attach an image of what it looks like now with a lot of attributes?
-For comparison sake.
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:09 UTC  ---
-
-This bug was previously known as _bug_ 3374 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=3374
-Imported an attachment (id=1257)
-Imported an attachment (id=1258)
-Imported an attachment (id=1259)
-
-Actual time not defined. Setting to 0.0
-The original submitter of attachment 1257 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-The original submitter of attachment 1258 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-The original submitter of attachment 1259 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-
-
+3374||"Patron's  Additional attributes and identifiers are displayed
+in the same format as other standard patron data: in a list of label/data
+pairs.
 
 "
-8693||"issuehistory.pl is displaying a timeline of checkouts for a particular title, so
-it makes more sense to display the list chronologically.
+8693||"issuehistory.pl is displaying a timeline of checkouts for a particular
+title, so it makes more sense to display the list chronologically.
 
 "
-8319||"On the statistics tab on the patron record the table headings are confusing to
-the average library staff member.  I propose changing the language to something
-a bit clearer.
-
-Patch to come
+8319||"On the statistics tab on the patron record the table headings are
+confusing to the average library staff member.  This patch change the language
+to something a bit clearer.
 
 "
-8211||"With the addition of DOM indexing, it is now possible to do  exploded  searches
-which search for records with broader, narrower, and other related headings by
-searching authorities for the specified term, then using authorities that match
-the specified criteria to do a more inclusive search for bib records.
+8211||"With the addition of DOM indexing, it is now possible to do  exploded
+searches which search for records with broader, narrower, and other related
+headings by searching authorities for the specified term, then using
+authorities that match the specified criteria to do a more inclusive search
+for bib records.
 
 "
-8321||"OPACShowBarcode has a description of: Show/Don't show Show items barcode in
+8321||"This patch is fixing a tiny display problem
+OPACShowBarcode has a description of: Show/Don't show Show items barcode in
 holding tab.
-
-It's repeating the  show  bit.  
-
-Patch coming fixing this and the grammar on this preference.
+(show is repeated)
 
 "
 number||"fulldesc"
-7846||"
+7846||"This patch does not add any feature, but improves by a factor 100 the 
+speed of Manage Batch for label printing screen 
 
 "
 7963||"Current script check-url.pl checks URL found in 856$u by sending HTTP
-requests, one by one. I propose a new script which send multiple
-requests simultaneously.
+requests, one by one. This patch add a new script which send multiple
+requests simultaneously. The checking is something like 20 times faster.
 
-This script is based on AnyEvent and AnyEvent::HTTP CPAN modules.
+This script is based on AnyEvent and AnyEvent::HTTP CPAN modules, that are
+required dependencies if you want to use it.
 
 "
 7941||"
 
 "
-8989||"Facets in search results (both in the staff interface and in the opac) have ids
-for css styling, except for the availability facet.
+8989||"Facets in search results (both in the staff interface and in the opac)
+have ids for css styling, except for the availability facet.
 
-It would be useful to have one, especially since this feature seems to have been
-broken for a while and this would allow us to hide it. Ideally i think we could
-hide it in the default css in the same patch.
-
-"
-7739||"We would like to know if it would be possible to develop a feature that would
-allow us to select more then 1 item to edit in the  edit items  screen. We want
-to be able to search for a title - click edit - edit items - and from this
-screen be able to choose more then one item to edit at a time.
+This patch add one, especially since this feature seems to have been
+broken for a while and this would allow us to hide it. 
 
 "
-7417||"Although authority records include references from unused terms, at present Koha
-does not take advantage of them when searching bibliographic records. It would
-be very useful if Koha could (optionally) include all the see-from terms in
-bibliographic records for indexing purposes. In order to do this, it will be
-necessary to inject see-from headings into bib records immediately before
-exporting them for indexing by Zebra (or solr, or any other indexing engine that
-Koha may use).
+7739||"A new option - Edit items in batch - is made available under the menu
+- Edit - in  the catalog detail page. When this option is selected the tool
+batch 
+item modification is called with all items under this biblio passed as
+parameters.
+
+User can then edit all items of this biblio in batch. Once changes are 
+saved the 'done' link takes the user back to the catalog detail page of 
+this biblio.
+
+"
+7417||"This patch enable the search on authorities see-from in biblio 
+searches. Although authority records include references from unused terms,
+at present Koha does not take advantage of them when searching bibliographic
+records. It would be very useful if Koha could (optionally) include all the
+see-from terms in bibliographic records for indexing purposes. In order
+to do this, it will be necessary to inject see-from headings into bib 
+records immediately before exporting them for indexing by Zebra (or solr,
+or any other indexing engine that Koha may use).
+The price for this feature, if you use it, is a much slower catalogue
+indexing speed. (by a factor 2 or 3)
 
 "
 7570||"For items in the cart (opac-basket.pl), only location and call no. are
-displayed, change this page to display item availability status as well.
+displayed, This patch add the display of item availability status as well.
 
 "
-8001||"This allows the title and the tag terms in the user's tag list to be styled
-differently in order to make things prettier.
+8001||"This patch allows the title and the tag terms in the user's tag list 
+to be styled differently in order to make things prettier.
 
 "
-8107||"Disabled buttons in Koha appear no different than enabled buttons. We should
-really have some CSS in Koha to make disabled buttons distinguishable from
-enabled ones
+8107||"Disabled buttons in Koha appear no different than enabled buttons. This
+patch add some CSS in Koha to make disabled buttons distinguishable from 
+enabled ones.
 
 "
-8083||"Introduce 'manage_circ_rules' and 'parameters_remaining_permissions' parameters
-subpermissions.
+8083||"This patch introduce 'manage_circ_rules' and
+'parameters_remaining_permissions' parameters subpermissions.
 
 Add  GranularParametersPermissions  boolean syspref, No default. If set to yes
 use aforementioned subpermissions in admin/* functions, otherwise just use
@@ -1351,189 +924,72 @@ parameters flag
 
 "
 7475||"Right now it is impossible to overlay existing records when importing new
-authority records. There needs to be a script that handles the following overlay
+authority records. This patch add a script that handles the following overlay
 options:
 * Overlay (or discard) based on matching preferred headings (1xx in MARC21, 2xx
-in UNIMARC)
-* Overlay (or discard) based on matching LCCNs (010 in MARC21)
+in UNIMARC).
+* Overlay (or discard) based on matching LCCNs (010 in MARC21).
 * Overlay (or discard) based on matching control numbers (001 for both MARC21
-and UNIMARC)
+and UNIMARC).
 * Overlay (or discard) based on matching an earlier form of the heading
-(4xx$w/2=[aeo] in MARC21, 4xx$5=a in UNIMARC)
-* Select which record to keep based on the date last modified (003 in MARC21)
+(4xx$w/2=[aeo] in MARC21, 4xx$5=a in UNIMARC).
+* Select which record to keep based on the date last modified (003 in MARC21).
 
-This script will enable libraries to keep their authority records up to date
+This script enable libraries to keep their authority records up to date
 with the latest national authority files, without polluting the local authority
 file with numerous copies of authority records (every time they are updated).
 
 "
-8449||"
+8449||"This patch changes the div classes, so that the prompts for action
+stand out and actually grab the attention of the user.
+
+It also adds more precise, descriptive language for the prompt messages and
+fixes the grammar (e.g. comma splices). The most important part being the 
+second instruction where staff are prompted to check-in the item to continue
+processing the hold for the next patron in the holds queue.
 
 "
-5184||"We accidentally upgraded the jQuery to 1.4.2, from the 1.3.2 bundled with Koha.
-This broke the background processing code, in particular with the bulk
-modification functions.
-
-This ticket is to track the handling of workarounds and fixes dealing with this,
-in particular fixing the bits that are broken with newer jQuery versions.
+5184||"This patch update JQuery library to version 1.3.2
 
 "
-7444||"All dates can now be displayed through a Template::Toolkit plugin. All existing
-code must be updated.
+7444||"With this patch, all dates can now be displayed through a 
+Template::Toolkit plugin. All existing code must be updated.
 Dates can/should/must now be displayed by:
 * adding [% USE KohaDates %] at the beginning of the template
 * use [% mydate   KohaDates %] for mydate date variable
-* remove .pl code that update date format before sending the string to the
-template.
+* remove .pl code that update date format before sending the string
+to the template.
 
 This entry is an omnibus, as many patches will be necessary.
 
-Note: the plugin has been introduced in Bug 929
-
 "
-7805||"The next step after 7310: Exposing the new permissions to add and delete. Will
-submit the patch now, but give a more detailed test plan later (if needed).
-
-What should be tested here is: 
-1 Adding a list and checking various permission settings on opac and staff (edit
-again or look in the shelves table via sql).
-2 Editing a list, changing perm settings and checking them again.
-3 Try to add an item to a list without permissions to add (note: you should not
-be the owner). Try this via interface or even try to hack a URL. It should not
-be possible.
-4 Try to delete an item that you added yourself to a list while delete_own is Do
-not allow. Even as owner you should not be able to.
-5 Try to delete an item that another one added to a list while delete_other is
-Do not allow. Even as owner you should not be able to.
-6 Try some things that you should be allowed to do so.
+7805||"The next step after 7310: Exposing the new permissions to add and
+delete virtualshelves.
 
 Important note: The owner can always add, but needs perms to remove.
 
 "
-4118||"
-
-
----- Reported by kyle.m.hall@gmail.com 2010-02-05 13:21:57 ----
-
-It would be nice to have the collection code added to the statistics table in
+4118||"This patch add the collection code added to the statistics table in
 addition to itemtype.
 
-
-
----- Additional Comments From kyle.m.hall@gmail.com 2010-02-05 16:50:23 ----
-
-Created an attachment
-Adds code to C4 modules to support ccodes.
-
-
-
-
-
----- Additional Comments From kyle.m.hall@gmail.com 2010-02-05 16:50:46 ----
-
-Created an attachment
-Updates the database to support ccodes in stats table
-
-
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:23 UTC  ---
-
-This bug was previously known as _bug_ 4118 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=4118
-Imported an attachment (id=1848)
-Imported an attachment (id=1849)
-
-Actual time not defined. Setting to 0.0
-Setting qa contact to the default for this product.
-   This bug either had no qa contact or an invalid one.
-The original submitter of attachment 1848 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-The original submitter of attachment 1849 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-
-
+"
+7601||"This patch add the DefaultLanguageField008 systempreference, that is
+used to populate the defauil 008 MARC21 field, Range 35-37
 
 "
-7601||"Problem:
---------
-
-When a new marc record is added, the language code in field 008 Range 35-37
-defaults to Englih ( eng ). This makes cataloguing inefficient and error-prone
-for librarians if most of the bibliographic data is e.g. in German or in French.
-
-Background:
------------
-The language code for English (eng) is hard coded in the files
-...koha\intranet\cgi-bin\cataloguing\value_builder\marc21_field_008.pl
-(~Lines 61, 100)
-and 
-...koha\intranet\cgi-bin\cataloguing\value_builder\normarc_field_008.pl
-(~Lines 58, 98)
-
-
-Proposition:
-------------
-
---Step 1 --------------------------
-Add somewhere to cataloguing.pref, 
-section  Record Structure  :
------------------------------------
-
--
-            - Fill in the default language for field 008 Range 35-37 (e.g. eng,
-nor, ger, see <a
-href= http://www.loc.gov/marc/languages/language_code.html >MARC Code List for
-Languages</a>)
-            - pref: DefaultLanguageField008
-            -   Empty defaults to eng. 
-
-
---Step 2 --------------------------
-Change  marc21_field_008.pl and 
-normarc_field_008.pl as follows:
------------------------------------
---2a---
-Add 3 lines of code at the top of the functions
-sub plugin_javascript and sub plugin:
-
-my $lang = C4::Context->preference('DefaultLanguageField008' );
-$lang =  eng  unless $lang;
-$lang = pack( A3 , $lang);
-
-The code defaults an empty value to  eng  makes sure that the code has a lenght
-of 3 letters.
-
---2b---
-In both functions, replace hard coded eng with $lang:
-
-document.getElementById(\ $field_number\ ).value='$dateentered' + 't
-xxu           00  0 $lang d';
-
-$result =  $dateentered  .  t        xxu           00  0 $lang d  unless
-$result;
-
-
---Step 3----------------------------------------------------------------------
-Login to Koha, go to Home › Administration › System Preferences (Cataloging) 
-and test with empty value and different language codes (ger, ita etc.)
-------------------------------------------------------------------------------
-
-I implemented and tested this locally with marc21_field_008.pl (Koha
-3.06.02.003)
+7751||"Controlled by a syspref, this will reduce the amount of time something
+can be onloan, if it has a lot of holds on it:
+The loan duration is reduced by decreaseLoanHighHoldsDuration days for items 
+with more than decreaseLoanHighHoldsValue holds
 
 "
-7751||"Controlled by a syspref, this will reduce the amount of time something can be
-onloan, if it has a lot of holds on it
-
-"
-8271||"The SIPserver uses a libpath different from the rest of Koha its passed in the
-upscript using -I. having cd'd to the C4/SIP directory.
-
-Perl has a perfectly good way to manage this rather than relying on -I being set
-correctly in a calling script. Using it may remove a barrier to setting up and
-debugging sip configurations.
+8271||"teach SIPServer.pm to set its own lib path SIPServer.pm requires that
+C4/SIP 
+is added to its lib path This has been done by passing this directory
+to it via -I. By using FindBin it can set the path for itself correctly. 
+This will also work if the C4/SIP directory tree is moved to a 
+non-standard location This patch also remove the now redundant -I. from
+sip_run.sh.
 
 "
 8525||"After doing a search and going to the details page, it can sometimes be
@@ -1542,255 +998,159 @@ very useful to highlight the matches on the details page in the same way we
 highlight them on the results page.
 
 "
-6716||"This is a bug that will have many patches.  I have (as doc manager) agreed to
-document the mysql structure in Koha.  To make it easy for others to submit
-patches and help me I'll submit a patch with what I've done in the day (or that
-time of day) so that others can submit patches as well without us doing the same
-work.
+7903||"This patch add ordernumber column in order's history table
 
-It was voted that I will enter comments using the -- notation, for example:
-
-`frameworkcode` varchar(4) NOT NULL default '', --primary key, identifier for
-the framework table
-
-This report should not be closed until all fields have been documented. If
-you're adding new fields please document them using the above notation when
-adding them.
+Add an ordernumber column in the search results table of orders. it would be
+an appreciate help as far as order tracking is concerned.
 
 "
-7903||"Created attachment 8918
-Add ordernumber column in order's history table
-
-Add an ordernumber column in the search results table of orders. it would be an
-appreciate help as far as order tracking is concerned.
-
-to test :
-Go to Acquisition homepage :
-Click on Orders Search Button
-Type a title or a supplier
-Submit
+6716||"The database documentation available at 
+http://schema.koha-community.org has been updated and improved
 
 "
-6689||"Created attachment 4912
-Screenshot of the proposed revised interface
-
-I propose a change to the style of the pager which has been added to some tables
-sorted by the jQuery tablesorter. See the attached image. This includes a change
-proposed in comments on Bug 6616 to make it clear that the pages notation (1/3)
-cannot be directly edited.
-
-This bug cannot be tested without the patch for Bug 6616.
+8718||"Normal catalogue detail view in staff client doesn't show missing
+serials or subscription history note.
+This patch adds librariannote (staff subscription history note) and missing
+list to the normal catalogue detail view in staff client.
 
 "
-8718||"Since the  normal  catalogue detail view in the staff client doesn't show much
-info about subscriptions at all, this can probably be considered an enhancement
-more than a bug...
+6689||"This patch change the style of the pager which has been added to some
+tables sorted by the jQuery tablesorter. 
 
 "
-8726||"Building on the work in bug 8211, we propose adding a  Did you mean?  plugin
-which will suggest that users review broader, narrower, and related terms when
-they do subject searches, thus making the functionality usable to the general
-public.
+7905||"In Serials, on the summary of a subscription, four different notes
+(nonpublic note, public note, and 2 notes for history) are displayed in
+one line for each. But when we edit the subscription, it's possible
+(and tempting) to type the content on several lines.
 
-"
-7905||"In Serials, on the summary of a subscription, four different notes (nonpublic
-note, public note, and 2 notes for history) are displayed in one line for each.
-But when we edit the subscription, it's possible (and tempting) to type the
-content on several lines.
-
-We could try to display these notes on several lines in an elegant way (not so
+This patch try to display these notes on several lines in an elegant way (not so
 easy because the layout seems to be optimized for one-line informations).
 
 "
-7153||"Created attachment 6190
-Patch
-
-Show Open Library as Search Target in  More Searches  in OPAC detail page.
-
-
-Updated syspref OPACSearchForTitleIn to include Open Library as a search target
+8726||"Building on the work in bug 8211, this patch add a  Did you mean? 
+plugin which will suggest that users review broader, narrower, and related
+terms when they do subject searches, thus making the functionality usable
+to the general public.
 
 "
-8100||"DataTables in Acquisision module: neworderbiblio.tt
-
-"
-7583||"It would be nice to be able to unreceive an item in acquisitions - or undo a
+7583||"This patch add a feature to unreceive an item in acquisitions - or undo a
 receipt if you happen to have clicked the wrong title or a title by accident
+
+"
+8100||"This patch add a DataTables filter in Acquisision module: neworderbiblio.tt
+
+"
+7153||"This patch show Open Library as Search Target in  More Searches  in OPAC
+detail page.
 
 "
 6684||"Currently, koha-remove does not check that at least one instancename was
 provided as an argument, so running it with arguments causes an Apache reload,
 which might come as a surprise.
 
-If no instancename is given as argument it should probably print it's usage.
+If no instancename is given as argument it print it's usage.
+"
+7304||"This patch add more permissions for budgets
+The librarian can now:
+    - add users to a budget
+    - Set restrictions to:
+      - None
+      - Owner
+      - Owner and users
+      - Owner, users and library
+    - Restricted users cannot spent on these budgets (they cannot modify them
+      either)
 
 "
-7304||" * aqbudgets.pl displays funds the librarians can use. There is a « show all
-funds » check box to access every funds.
-* on the fund level, you can define owner, users and/or library and then
-restrict access to : none of these or to the owner only or to the ower + users o
-to the ower + users + librarians from a specific library. We based the
-restriction on the library a librarian is connected to.
-
-These restrictions take effect on :
-acqui/acqui-home.pl
-acqui/booksellers.pl
-acqui/lateorders.pl
-acqui/neworderempty.pl
-acqui/parcel.pl
-admin/aqbudgets.pl
-admin/aqplan.pl 	 (BibLibre MT5557)
+5600||"This patch add a command line interface for tools/export.pl
+export.pl [--format=format] [--date=date] [--dont_export_items]
+  [--deleted_barcodes] [--clean] --filename=outputfile
+    * format is either 'xml' or 'marc' (default)
+    * date should be entered as the 'dateformat' syspref is set
+      (dd/mm/yyyy for metric, yyyy-mm-dd for iso, mm/dd/yyyy for us)
+    * records exported are the ones that have been modified since 'date'
+    * if --deleted_barcodes is used, a list of barcodes of items deleted
+      since 'date' is produced (or from all deleted items if no date is
+      specified)
+    * --clean removes NSE/NSB
 
 "
-5742||"It would be awesome if there were a batch patron edit tool that included the
-patron attributes in it.  An example use of this would be for school libraries
+5742||"This patch add a batch patron edit tool that included the
+patron attributes in it.
+An example use of this would be for school libraries
 that keep track of home rooms as an attribute - that changes each year and it
 would be great to be able to batch edit that.
 
 "
-5600||"Koha does not currently have a bulk MARC biblio export script; there is one for
-authorities, and rebuild_zebra.pl can be used if one wants to do a reindex along
-with the export, but otherwise there is no commandline script for exporting the
-MARC biblios.
-
-This script should be able to output both ISO 2709 and MARCXML.
+8353||"This patch add a script, xt/check_sysprefs.t that check all the sysprefs
+in your system, and warn you if any sysprefs are missing
 
 "
-8353||"To test:
-1. Run prove xt/check_sysprefs.t
-2. Note that the results warn you if any sysprefs are missing
-
-"
-8332||"In addition to the work in bug 8207 that enables auth_finder use, it would be
-very useful when creating authorities to have the auth_finder plugin
+8332||"In addition to the work in bug 8207 that enables auth_finder use, it
+would be very useful when creating authorities to have the auth_finder plugin
 automatically fill out the relationship information in $w (in MARC21).
+
+"
+2930||"Put other name on checkout screen
+
+This patch adds other name to the include which is used
+to display patron names and adds this include in several
+places where it can be used in place of direct output.
+
+The patron-title include has been modified to handle the
+two possible variable scopes throughout patron-related
+templates. This is a hack similar to having both
+circ-menu.tt and circ-menu.inc, but keeping both in the
+same file.
+
+Changes to some scripts were necessary to make the
+othernames variable available to the include.
+
+This patch also corrects some title tags and fixes
+some incorrect capitalization (see Bug 2780).
 
 "
 6774||"Display barcode on OPAC detail normal view including in XSLT view
 
 "
-2930||"
-
-
----- Reported by dschust1@gmail.com 2009-01-27 06:56:23 ----
-
-Currently this information only displays on the Detail screen - Since several
-borrowers don't use their legal name, but we load them that way schools are
-putting in the  Other name  information.  It would be helpful if that would
-display right under the name or behind it on the CKO screen.  We are having to
-put it in the  notes  field to show on the CKO screen.
-
-example - Charolett Elam actually goes by Mary - but you don't know that on the
-CKO screen.
-
-
-
----- Additional Comments From mjr@ttllp.co.uk 2009-05-11 14:33:27 ----
-
-Does CKO mean checkout?
-
-
-
-
----- Additional Comments From gmcharlt@gmail.com 2009-05-11 14:37:14 ----
-
-(In reply to comment #1)
-> Does CKO mean checkout?
-> 
-
-Yes - usage from a couple legacy ILSs.
-
-
-
----- Additional Comments From dschust1@gmail.com 2010-02-11 14:25:43 ----
-
-Created an attachment
-patch for this bug - modifies circulation.pl and circulation.tmpl
-
-
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:04 UTC  ---
-
-This bug was previously known as _bug_ 2930 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=2930
-Imported an attachment (id=973)
-
-Actual time not defined. Setting to 0.0
-CC member mjr@ttllp.co.uk does not have an account here
-The original submitter of attachment 973 is unknown.
-   Reassigning to the person who moved it here: chris@bigballofwax.co.nz.
-
-
+8432||"This patch add fields in the search result list : branch, callnumber 
+(in separate columns), history, expirydate, number of routing lists attached.
 
 "
-8432||"Add fields in the search result list : branch, callnumber (in separate columns),
-history, expirydate, number of routing lists attached
-
-(BibLibre MT6724)    
-
-MT6724: Change serials results display
-    
-    Separate callnumber from branch
-    Add expiration date
-    Add number of routings, near 'Edit' button
+8143||"
 
 "
-8674||"We need a script to delete biblios
+8674||"This script batch deletes biblios which contain a biblionumber
+present in file passed in parameter.
+If one biblio has items, it is not deleted.
 
 "
-8143||"We use a very old version of jQuery tabs in many places. Each instance should be
-updated to work with the latest jQueryUI.
+8263||"This patch merge opaclayoutstylesheet and opacstylesheet that could
+just be one pref (just as opaccolorstylesheet already advertises).
 
 "
-8263||"opaccolorstylesheet should support remotes, but does not work.
-opaclayoutstylesheet and opacstylesheet could just be one pref (just as
-opaccolorstylesheet already advertises)
+8019||"If I select a language in Staff client or Opac, I expect it to be
+persistent between browser sessions.
+
+This is not the case. Koha forgets the selection as soon as all Broser 
+instances are closed, and starts up the next session with the Browser's 
+preferred language.
+With this patch, the language choice is stored for up to 3 years from the last
+login.
 
 "
-8203||"Right now there is no convenient way to save an individual authority record. I
-propose adding a Save button to the authority view in the staff client which
+8203||"Right now there is no convenient way to save an individual authority
+record.
+This patch add a Save button to the authority view in the staff client which
 allows records to be saved as MARC, MARCXML, and (at least for MARC21) MADS.
 
 "
-8019||"If I select a language in Staff client or Opac, I expect it to be persistent
-between browser sessions.
-
-This is not the case. Koha forgets the selection as soon as all Broser instances
-are closed, and starts up the next session with the Browser's preferred
-language.
-
-This behaviour is due to the Cookie KohaOpacLanguage. I expires when the browser
-is closed because no expiry date is set in
-C4\Templates.pm, line 298 ff:
-
-sub setlanguagecookie {
-    my ( $query, $language, $uri ) = @_;
-    my $cookie = $query->cookie(
-        -name    => 'KohaOpacLanguage',
-        -value   => $language,
-        -expires => ''
-    );
-    print $query->redirect(
-        -uri    => $uri,
-        -cookie => $cookie
-    );
-}
-
-Solution: Set -expires to a value like +3y (3 years from now)
-
-"
-8652||"On the lateorders.pl, we dont want all the late orders.
-By default, this page displays all the orders.
-
-"
 7992||"The plugin koha about the Automatic Number incrementing inventory are not
-perfect
-So I suggest a new plugin which offers more opportunities.
+perfect.
+This patch add a new plugin which offers more opportunities.
 
 Automatic Number incrementing inventory. Prefix management from a authorised
-values list
+values list.
 
 1 / Create a list of authorised values(INVENTORY_NUMBER). In which the code is
 the prefix and the description the last number assigned.
@@ -1800,32 +1160,16 @@ the prefix and the description the last number assigned.
 
 3 / From a holding record, after indicate the prefix when you click on the
 plugin -> koha search the last number from authorised values assigned in the
-list ​​and increment n +1 level meter (description)
+list and increment n +1 level meter (description).
 
 "
-5910||"
+8652||"On the lateorders.pl, we dont want all the late orders.
+With this patch, the date interval is based on the estimated delivery date and
+the delay param is based on the closing date.
 
 "
-8641||"Created attachment 11618
-Screenshot with warnings regarding current user on About page
-
-If you are logged in as database administrative user,a lot of things do not wok.
-
-It seems that this is a pitfall a lot of newbies fall in (me included, as far as
-I remeber).
-
-See e.g. 
-http://stats.workbuffer.org/irclog/koha/2012-08-06   (20:26)
----
-Hello, I'm helping my Library get Koha setup as their new ILS. I've got it up
-and running, but it doesn't seem to be remembering anything. (Library is always
-not set, etc.) Any help would be appreciated. ;)
----
-
-To prevent frustration and support questions, I propose to add some information
-to About->System Information (see screenshot).
-
-Patch follows.
+5910||"This patch add a 'search all authorities types' feature for
+UNIMARC libraries.
 
 "
 7784||"In the batch item modification interfaces:
@@ -1833,80 +1177,60 @@ Patch follows.
  Checking the box right next the subfield label will disable the entry 
 and delete the values of that subfield on all selected items 
 
-I think it's more accurate to say  disable the entry and delete the contents of
-the subfield.  Some enhancements:
+It's more accurate to say  disable the entry and delete the contents of
+the subfield. Some enhancements:
 
  - indicate this by emptying/resetting the field and adding a disabled
 attribute.
- - append a note which says  The contents of this field will be deleted  
+ - append a note which says  The contents of this field will be deleted.
 
 It would also be helpful to add a note saying that leaving fields empty will
 make no changes to any records.
 
 "
-8301||"Created attachment 10450
-Screenshot with warnings regarding preferences on About page
+8641||"If you are logged in as database administrative user,a lot of things
+do not wok.
 
-To minimize support questions regarding common mistakes, the About page should
-have an additional tab that displays warnings if depractated and/or mutual
+It seems that this is a pitfall a lot of newbies fall in 
+To prevent frustration and support questions, this patch add some information
+to About->System Information.
+
+"
+8301||"
+To minimize support questions regarding common mistakes, the About page now 
+has an additional tab that displays warnings if deprecated and/or mutual
 excluding system preferences are used.
 
 Example: Bug 8298 Can't call method  subfield  on an undefined value at
 Biblio.pm (sub _AddBiblioNoZebra)
 "
-4255||"
-
-
----- Reported by spalding@senylrc.org 2010-02-23 18:07:11 ----
-
-Item Type would be a great feature to be added to the facet list.
-
-
-
---- Bug imported by chris@bigballofwax.co.nz 2010-05-21 01:25 UTC  ---
-
-This bug was previously known as _bug_ 4255 at http://bugs.koha.org/cgi-
-bin/bugzilla3/show_bug.cgi?id=4255
-
-Unknown operating system Windows 2000. Setting to default OS  All .
-Actual time not defined. Setting to 0.0
-Setting qa contact to the default for this product.
-   This bug either had no qa contact or an invalid one.
-
-
+4255||"Itemtype is added to the facet list
 
 "
-8376||"
+8376||"This patch add a script that prints to standard output what is returned
+by GetMemberDetails in CSV format.
+Exported fields can be specified with option -f. If no -f option is
+specified, all fields are exported.
+
+Usage:
+misc/export_borrowers.pl [--field=FIELD [--field=FIELD [...]]] [--show-header]
+misc/export_borrowers.pl -h
+
+    -f, --field=FIELD       Field to export. It is repeatable and has to match
+                            keys returned by the GetMemberDetails function.
+                            If no field is specified, then all fields will be
+                            exported.
+    -H, --show-header       Print field names on first row
+    -h, --help              Show this help
 
 "
-7175||"Created attachment 6232
-orderreceive.pl
-
-When syspref AcqCreateItem= ordering , this development allow to choose what
+7175||"When syspref AcqCreateItem= ordering , this patch allow to choose what
 items are received by listing all created items and providing a checkbox for
 each one.
-See the screenshot to see what it looks like.
-
-BibLibre infos:
-  Repository: git://git.biblibre.com/koha_biblibre.git
-  Branch:     stetienne/ft/MT6527
 
 "
-8207||"Right now if you were to link a field in an authority to a thesaurus, it will
-not work properly. The authority type frameworks require some adjustments to
-allow see also headings to be linked to thesauri (such as adding subfield $9).
-
-"
-6448||"We are migrating one library from custom software to Koha, and they are using
-EAN-13 zero-padded barcodes (primary key in legacy system) instead of ISBN or
-ISSN. Since books allready have barcodes on them, we can't change it.
-
-To make things more insteresting, at least one barcode reader reports it as
-UPC-A without first leading zero, since EAN-13 has backwards compatibility with
-it.
-
-"
-8279||"Adds more precise debug informations for easier CAS troubleshootings resolution.
+8279||"Adds more precise debug informations for easier CAS troubleshootings
+resolution.
 
 Before this patch, whenever ticket validation failed, the debug message was
  Invalid ticket .
@@ -1916,29 +1240,41 @@ casServerUrl syspref is wrong...
 This patch adds the reason for ticket validation failing.
 
 "
+6448||"
+
+"
+8207||"Right now if you were to link a field in an authority to a thesaurus, 
+it will not work properly. The authority type frameworks require some 
+adjustments to allow see also headings to be linked to thesauri 
+(such as adding subfield $9).
+
+"
+7849||"This patch add the ability for fines to be calculated at checkin.
+This will be  helpful for hourly based items so the cronjob for fines 
+doesn't have to be run on such a frequent interval.
+
+"
 7857||"
 
 "
-7849||"Add the ability for fines to be calculated at checkin.  This will be helpful for
-hourly based items so the cronjob for fines doesn't have to be run on such a
-frequent interval.
+7286||"Index Koha records by chunks. It is useful when some record causes
+errors and stop the indexation process. With this script, if indexation
+of one chunk fails, chunk is splitted in 2 (or 3) chunks, and
+indexation continue on these chunks.
+rebuild_zebra.pl is called only once to export records.
+Splitting and indexing is handled by this script (using yaz-marcdump and
+zebraidx).
 
 "
-8570||"Created attachment 11347
-Add paginations to the Z39.50 search results.
+8570||"This patch add paginations to the Z39.50 search results.
 
-When doing Z39.50 searches, a maximum of 20 results are show even if there are a
-lot more matching results returned by the server.
+When doing Z39.50 searches, a maximum of 20 results are show even if there
+are a lot more matching results returned by the server.
 
-This patch adds some pagination code to the Z39.50 results pages so all results
-returned by the Z39.50 server can be accessed.
-
-"
-7286||"
+This patch adds some pagination code to the Z39.50 results pages so all
+results returned by the Z39.50 server can be accessed.
 
 "
-7847||"Undefined subroutine &C4::Search::GetHiddenItemnumbers called at
-/srv/koha_fer/opac/../C4/Search.pm line 1627.
- at /srv/koha_fer/opac/opac-search.pl line 780
+7847||"
 
 "
