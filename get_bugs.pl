@@ -118,6 +118,9 @@ if (-e "$reltools/descriptions/descriptions-$shortversion.csv") {
 
         open my $fh, "<:encoding(utf8)", "$reltools/descriptions/descriptions-$shortversion.csv" or die "$reltools/descriptions-$shortversion.csv: $!";
         while ( my $row = $csv->getline( $fh ) ) {
+# uncomment the next line if you've problem of CSV reading (like "" in descriptions)
+# you'll see the last valid line read
+#           print "read : $row->[0]\n";
             $descriptions{$row->[0]} = $row->[2];
         }
         $csv->eof or $csv->error_diag();
@@ -253,18 +256,10 @@ if (scalar @bug_list) {
                     close $fh or die "$reltools/descriptions/descriptions-$shortversion.csv: $!";
 
                 }
-                # CLEAN DESCRIPTION
-                # if the comment 0 start with "Created attachment...", remove the first 2 lines : the attachment and the patch description
-                # that is usually the title of the bug
-                $description =~ s/^Created attachment \d*\n.*?\n//;
-                # if the description is related to bug <4500, it comes from bugs.koha.org import and is useless, discard it
-                $description='' if $fields[0] <4500;
-                # remove BibLibre specific informations:
-                $description =~ s/\(BibLibre MT\d\d\d\d\) *\n//;
-                $description =~ s/^\n//;
 
                 if ($html) {
                     # do some basic formatting if we are in html mode, if the description is multilined
+                    $description =~ s/([a-zA-Z0-9 ])\n/$1 /mg;
                     $description =~ s/\n/<br\/>/g;
                 }
             }
