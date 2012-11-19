@@ -41,7 +41,7 @@ Enhancements and new features in [% shortversion %]
 Critical bugs fixed in [% shortversion %]
 ======================
 [% IF MAJOR %]
-(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)
+(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance releases)
 [% END %]
 [% FOREACH highlight IN highlights %]
 [% highlight.component %]
@@ -53,7 +53,7 @@ Critical bugs fixed in [% shortversion %]
 Other bugs fixed in [% shortversion %]
 ======================
 [% IF MAJOR %]
-(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)
+(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance releases)
 [% END %]
 [% FOREACH bugfix IN bugfixes %]
 [% bugfix.component %]
@@ -154,7 +154,7 @@ for Koha [% shortversion %].
 [% FOREACH signer IN signers %]  * [% signer.name %][% END %]
 [%- END -%]
 
-We regret any omissions.  If a contributor has been inadvertantly missed,
+We regret any omissions.  If a contributor has been inadvertently missed,
 please send a patch against these release notes to 
 koha-patches@lists.koha-community.org.
 
@@ -168,9 +168,9 @@ version of Koha can be retrieved by checking out the master branch of
     git://git.koha-community.org/koha.git
 
 The branch for this version of Koha and future bugfixes in this release line is [% branch %].
-
+[% UNLESS MAJOR %]
 The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].
-
+[% END %]
 
 Bugs and feature requests
 ======================
@@ -181,6 +181,7 @@ tracker at
     http://bugs.koha-community.org/
 
 
-Ehara taku toa i te toa takitahi, engari he toa takitini 
-My strength is not that of a single warrior but that of many
+He rau ringa e oti ai.
+(Many hands finish the work)
+
 [% timestamp %]

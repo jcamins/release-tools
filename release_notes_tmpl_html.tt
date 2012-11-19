@@ -30,7 +30,7 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 [% IF highlights %]
 <h3>Critical bugs fixed in Koha [% shortversion %]</h3>
 [% IF MAJOR %]
-<p>(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)</p>
+<p>(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance releases)</p>
 [% END %]
 [% FOREACH highlight IN highlights %]
 <h4>[% highlight.component %]</h4>
@@ -43,7 +43,7 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 [% IF bugfixes %]
 <h3>Other bugs fixed in Koha [% shortversion %]</h3>
 [% IF MAJOR %]
-<p>(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance release)</p>
+<p>(this list include all bugfixes since the previous major version. Most of them have already been fixed in maintainance releases)</p>
 [% END %]
 
 [% FOREACH bugfix IN bugfixes %]
@@ -74,7 +74,7 @@ Koha [% shortversion %] is a bugfix/maintenance release.
 <h3>Documentation</h3>
 
 <p>The Koha manual is maintained in DocBook. The home page for Koha documentation is <a href="http://koha-community.org/documentation/">http://koha-community.org/documentation</a></p>
-<p>As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% line %]/en/">http://manual.koha-community.org/[% shortversion %]/en/</a></p>
+<p>As of the date of these release notes, only the English version of the Koha manual is available at <a href="http://manual.koha-community.org/[% shortversion %]/en/">http://manual.koha-community.org/[% shortversion %]/en/</a></p>
 <p>The Git repository for the Koha manual can be found at  <a href="http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary">http://git.koha-community.org/gitweb/?p=kohadocs.git;a=summary</a></p>
 
 [%- IF translations %]
@@ -140,7 +140,7 @@ The release team for Koha [% shortversion %] is
 </ul>
 [% END %]
 
-<p>We regret any omissions.  If a contributor has been inadvertantly missed, please send a patch against these release notes to  koha-patches@lists.koha-community.org.</p>
+<p>We regret any omissions.  If a contributor has been inadvertently missed, please send a patch against these release notes to  koha-patches@lists.koha-community.org.</p>
 
 <h3>Revision control notes</h3>
 
@@ -148,11 +148,12 @@ The release team for Koha [% shortversion %] is
 
 <p>The branch for this version of Koha and future bugfixes in this release line is [% branch %].</p>
 
+[% UNLESS MAJOR %]
 <p>The last Koha release was [% lastrelease %], which was released on [% lastreleasedate %].</p>
-
+[% END %]
 <h3>Bugs and feature requests</h3>
 
 <p>Bug reports and feature requests can be filed at the Koha bug tracker at <a href="http://bugs.koha-community.org/">http://bugs.koha-community.org</a></p>
 
-<p>Ehara taku toa i te toa takitahi, engari he toa takitini (My strength is not that of a single warrior but that of many) </p>
+<p>He rau ringa e oti ai. (Many hands finish the work)</p>
 [% timestamp %]
