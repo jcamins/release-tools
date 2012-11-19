@@ -154,7 +154,7 @@ This patch make the default view available in the XSLT.
 "
 5335||"Before this patch, VAT rate was defined at vendor level. With this 
 new feature, the system preference gist is now a list of tax rates.
-Each vendor has its own default tax rate, and, on each orderline, the 
+Each vendor has its own default tax rate, and on each orderline the 
 librarian can choose the tax rate to apply, the default being the vendor
 default one."
 8089||"
@@ -546,7 +546,7 @@ status.
     -  base on HTTP::Server or similar.
     -  command line params: config file.
     -  config values as per spec.
-    -  first get the auth cooki from auth url, then make request to import url"
+    -  first get the auth cookie from auth url, then make request to import url"
 4460||"Though Koha enables usage of Amazon's AssociateID tag in the enhanced content
 configuration, no code currently uses it when generating links to Amazon.  Thus
 if a person searching the catalog clicks on a link taking them to Amazon for a
@@ -762,7 +762,7 @@ provided as an argument, so running it with arguments causes an Apache reload,
 which might come as a surprise.
 If no instancename is given as argument it print it's usage.
 "
-7304||"This patch adds more permissions for budgets
+7304||"This patch adds more permissions for budgets.
 The librarian can now:
     - add users to a budget.
     - Set restrictions to:
