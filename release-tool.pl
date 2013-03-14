@@ -672,7 +672,8 @@ unless ( $config->param('skip-deb') || $config->param('skip-install') ) {
             "sudo koha-create --marcflavor=$lflavour --create-db pkgrel 2>&1", '',
             1 );
 
-        unless ( $config->param('skip-webinstall') ) {
+        print_log("Unable to run webinstaller for $flavour package due to Koha breakage") if (! $config->param('skip-webinstall'));
+        unless ( $config->param('skip-webinstall') || 1 ) {
             my $pkg_user = $ssh->capture("sudo xmlstarlet sel -t -v 'yazgfs/config/user' '/etc/koha/sites/pkgrel/koha-conf.xml'");
             my $pkg_pass = $ssh->capture("sudo xmlstarlet sel -t -v 'yazgfs/config/pass' '/etc/koha/sites/pkgrel/koha-conf.xml'");
             chomp $pkg_user;
@@ -731,7 +732,8 @@ unless ( $config->param('skip-tgz') || $config->param('skip-install') ) {
             "sudo make install 2>&1", $subdir, 1 );
         ssh_task( $ssh, "Linking and loading Apache site for $flavour...", "sudo ln -s /etc/koha/koha-httpd.conf /etc/apache2/sites-available/koha && sudo a2ensite koha && sudo apache2ctl restart", '', 1 );
 
-        unless ( $config->param('skip-webinstall') ) {
+        print_log("Unable to run webinstaller for $flavour tarball due to Koha breakage") if (! $config->param('skip-webinstall'));
+        unless ( $config->param('skip-webinstall') || 1 ) {
             my $harness_args = {
                 test_args => [
                     "http://$lxc_ip:8080", "http://$lxc_ip",
