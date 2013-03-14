@@ -240,7 +240,11 @@ Kohaclone directory. Defaults to the current working directory
 
 =item B<--branch>
 
-The name of the branch or distribution in use. Defaults to current git branch
+The name of the git branch in use. Defaults to current git branch
+
+=item B<--distribution>
+
+The name of the distribution. Defaults to the current git branch
 
 =item B<--version>
 
@@ -392,6 +396,7 @@ my $options = GetOptions(
     'version=s', 'autoversion|a',
     'kohaclone|k=s',
     'branch=s', 'since=s',
+    'distribution=s',
 
     # Execution options
     'database=s',
@@ -447,7 +452,10 @@ push @marcflavours, 'MARC21'  unless $config->param('skip-marc21');
 push @marcflavours, 'UNIMARC' unless $config->param('skip-unimarc');
 push @marcflavours, 'NORMARC' unless $config->param('skip-normarc');
 
-set_default( 'branch', `git branch | grep '*' | sed -e 's/^* //' -e 's#/#-#'` );
+set_default( 'branch', `git branch | grep '*' | sed -e 's/^* //'` );
+my $dist = $config->param('branch');
+$dist =~ s#[/_]#-#g;
+set_default( 'distribution', $dist );
 
 my $kohaversion = `grep 'VERSION = ' kohaversion.pl | sed -e "s/^[^']*'//" -e "s/';//"`;
 set_default( 'version', $kohaversion );
@@ -458,7 +466,7 @@ set_default( 'maintainer-email', `git config --global --get user.email` );
 
 set_default( 'build-result',
         "$ENV{HOME}/releases/"
-      . $config->param('branch') . '/'
+      . $config->param('distribution') . '/'
       . $config->param('version') );
 
 make_path( $config->param('build-result') );
@@ -490,7 +498,7 @@ set_default(
     'tarball',
     build_result(
             'koha-'
-          . $config->param('branch') . '-'
+          . $config->param('distribution') . '-'
           . $config->param('version')
           . '.tar.gz'
     )
@@ -520,6 +528,8 @@ print_log(
 );
 print_log( "\tBranch:  "
       . $config->param('branch')
+      . "\n\tDistribution: "
+      . $config->param('distribution')
       . "\n\tVersion: "
       . $config->param('version')
       . "\n" );
@@ -541,6 +551,7 @@ unless ( $config->param('skip-tests') ) {
         $config->param('kohaclone') . '/xt/author/translatable-templates.t',
         $config->param('kohaclone') . '/xt/author/valid-templates.t',
         $config->param('kohaclone') . '/xt/permissions.t',
+        $config->param('kohaclone') . '/xt/single_quotes.t',
         $config->param('kohaclone') . '/xt/tt_valid.t'
     );
     $finished_tests = 'yes';
@@ -563,7 +574,7 @@ unless ( $config->param('skip-deb') ) {
     shell_task(
         "Building packages",
         "debian/build-git-snapshot --distribution="
-          . $config->param('branch') . " -r "
+          . $config->param('distribution') . " -r "
           . $config->param('build-result') . " -v "
           . $config->param('version')
           . "$extra_args 2>&1"
@@ -656,7 +667,7 @@ unless ( $config->param('skip-deb') || $config->param('skip-install') ) {
         print_log("Installing from package for $flavour...");
         my ($lxc_ip, $ssh) = create_lxc();
         ssh_task( $ssh, "Downloading package...", "wget -nv http://10.0.3.1" . $config->param('package') . ' 2>&1', '', 1 );
-        ssh_task( $ssh, "Installing package...", "sudo dpkg --no-debsig -i " . basename($config->param('package')) . ' 2>&1; sudo apt-get -y -f install 2>&1', '', 1 );
+        ssh_task( $ssh, "Installing package...", "sudo dpkg --no-debsig -i " . basename($config->param('package')) . ' 2>&1; sudo apt-get -y -f --force-yes install 2>&1', '', 1 );
         ssh_task( $ssh, "Running koha-create for $flavour",
             "sudo koha-create --marcflavor=$lflavour --create-db pkgrel 2>&1", '',
             1 );
@@ -843,6 +854,7 @@ sub summary {
         && not $config->param('skip-rnotes') );
     return if $config->param('quiet') > 1;
     my $branch  = $config->param('branch');
+    my $distribution  = $config->param('distribution');
     my $version = $config->param('version');
     my $maintainer =
         $config->param('maintainer-name') . ' <'
@@ -858,6 +870,7 @@ $capsule_summary
 Release test report
 =======================================================
 Branch:                 $branch
+Distribution:           $distribution
 Version:                $version
 Maintainer:             $maintainer
 Run started at:         $starttime
@@ -985,7 +998,7 @@ sub create_lxc {
     }
     close($outputfh);
 
-    my $lxc_ip = `host -s $lxc_host 10.0.3.1 | grep 'has address' | sed -e 's/^.*has address //'`;
+    my $lxc_ip = `lxc-ip -n $lxc_host`;
     chomp($lxc_ip);
     print_log(" Connecting to lxc container...");
     my $ssh = Net::OpenSSH->new("ubuntu\@$lxc_ip", master_opts => [-o => "StrictHostKeyChecking=no"]);
