@@ -12,11 +12,21 @@
 Koha [% shortversion %] is a bugfix/maintenance release.
 [% END %]
 
-<p>It includes [% nb_enhancements %] enhancement and [% nb_bugfixes %] bugfixes.</p>
+<p>It includes [% nb_newfeatures %] new features, [% nb_enhancements %] enhancement and [% nb_bugfixes %] bugfixes.</p>
 
+[% IF newfeatures %]
+<h3>New features in Koha [% shortversion %]</h3>
+[% FOREACH newfeature IN newfeatures %]
+<h4>[% newfeature.component %]</h4>
+<ul>
+[% FOREACH line IN newfeature.list %]<li>[% line.short_desc %] <i>(bug #[% line.number %])</i></li>
+<ul><p>[% line.description %]</p></ul>
+[% END %]
+</ul>
+[% END %][% END %]
 
 [% IF enhancements %]
-<h3>Enhancements and new features in Koha [% shortversion %]</h3>
+<h3>Enhancements in Koha [% shortversion %]</h3>
 [% FOREACH enhancement IN enhancements %]
 <h4>[% enhancement.component %]</h4>
 <ul>

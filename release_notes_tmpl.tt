@@ -25,10 +25,20 @@ Koha [% shortversion %] is a major release, that comes with many new features.
 Koha [% shortversion %] is a bugfix/maintenance release.
 [% END %]
 
-It includes [% nb_enhancements %] enhancement and [% nb_bugfixes %] bugfixes.
+It includes [% nb_newfeatures %] features, [% nb_enhancements %] enhancements and [% nb_bugfixes %] bugfixes.
+
+[% IF newfeatures %]
+New features in [% shortversion %]
+======================
+[% FOREACH newfeature IN newfeatures %]
+[% newfeature.component %]
+----------
+[% FOREACH line IN newfeature.list %]	[% line.number %]	[% line.short_desc %][% IF line.description %]
+[% line.description %][% END %]
+[% END %][% END %][% END -%]
 
 [% IF enhancements %]
-Enhancements and new features in [% shortversion %]
+Enhancements in [% shortversion %]
 ======================
 [% FOREACH enhancement IN enhancements %]
 [% enhancement.component %]

@@ -197,14 +197,16 @@ if (scalar @bug_list) {
     my @columns = $csv->fields;
 
     # the current component for the 3 cases (highlights, bugfixes, enhancements)
-    my ($current_highlight,$current_bugfix,$current_enhancement) = ('','','');
+    my ($current_highlight,$current_bugfix,$current_enhancement,$current_newfeature) = ('','','','');
     #The lists of highlights, bugfixes and enhancement
     # the component_xxx contains an array of hash reset for each component
     # the xxx contains an array of hash with component & component_xxx array of hash
     my (@component_highlights,@highlights);
     my (@component_bugfixes,@bugfixes);
     my (@component_enhancements,@enhancements);
+    my (@component_newfeatures,@newfeatures);
     my $nb_enhancements = 0;
+    my $nb_newfeatures  = 0;
     my $nb_bugfixes     = 0;
     while (scalar @csv_file) {
         $csv->parse(shift @csv_file);
@@ -229,7 +231,7 @@ if (scalar @bug_list) {
             $current_bugfix=$fields[3];
             push @component_bugfixes, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2] };
             $nb_bugfixes++;
-        } else { # enhancements
+        } else { # enhancements & new feature
             #
             # if bugzilla login and password have been provided, retrieve the description of the bug
             #
@@ -273,25 +275,41 @@ if (scalar @bug_list) {
                     $description =~ s/\n/<br\/>/g;
                 }
             }
-            if ($current_enhancement && $fields[3] ne $current_enhancement) {
-                my @t=@component_enhancements;
-                push @enhancements, { component => $current_enhancement, list => \@t };
-                @component_enhancements=();
+            if ($fields[1] =~ m/enhancement/) {
+                if ($current_enhancement && $fields[3] ne $current_enhancement) {
+                    my @t=@component_enhancements;
+                    push @enhancements, { component => $current_enhancement, list => \@t };
+                    @component_enhancements=();
+                }
+                $current_enhancement=$fields[3];
+                push @component_enhancements, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2], description => $description };
+                $nb_enhancements++;
+            } else { # new feature
+                if ($current_newfeature && $fields[3] ne $current_newfeature) {
+                    my @t=@component_newfeatures;
+                    push @newfeatures, { component => $current_newfeature, list => \@t };
+                    @component_newfeatures=();
+                }
+                $current_newfeature=$fields[3];
+                push @component_newfeatures, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2], description => $description };
+                $nb_newfeatures++;
+
             }
-            $current_enhancement=$fields[3];
-            push @component_enhancements, { number=> $fields[0],severity=> $fields[1], short_desc=> $fields[2], description => $description };
-            $nb_enhancements++;
         }
     }
     # push the last components
     push @highlights, { component => $current_highlight, list => \@component_highlights };
     push @bugfixes, { component => $current_bugfix, list => \@component_bugfixes };
     push @enhancements, { component => $current_enhancement, list => \@component_enhancements };
+    push @newfeatures, { component => $current_newfeature, list => \@component_newfeatures };
+
     $arguments{highlights}      = \@highlights;
     $arguments{bugfixes}        = \@bugfixes;
     $arguments{enhancements}    = \@enhancements;
+    $arguments{newfeatures}     = \@newfeatures;
     $arguments{nb_bugfixes}     = $nb_bugfixes;
     $arguments{nb_enhancements} = $nb_enhancements;
+    $arguments{nb_newfeatures}  = $nb_newfeatures;
 }
 
 open (SYSPREFS, "git diff $tag installer/data/mysql/sysprefs.sql | grep '^+[^+]' | sed -e 's/^\+//' |");
