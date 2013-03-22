@@ -717,7 +717,7 @@ unless ( $config->param('skip-tgz') || $config->param('skip-install') ) {
         my $subdir = 'koha-' . $config->param('version');
         ssh_task( $ssh, "Downloading tarball...", "wget -nv http://10.0.3.1" . $config->param('tarball') . ' 2>&1', '', 1 );
         ssh_task( $ssh, "Untarring tarball...", "tar zxvf " . basename($config->param('tarball')) . ' 2>&1', '', 1 );
-        ssh_task( $ssh, "Installing dependencies...", "sudo apt-get -y install `cat install_misc/ubuntu.12.04.packages | grep install | sed -e 's/install\$//' | tr -d ' \\t' | tr '\\n' ' '` 2>&1", $subdir, 1 );
+        ssh_task( $ssh, "Installing dependencies...", "sudo apt-get -y --force-yes install `cat install_misc/ubuntu.12.04.packages | grep install | sed -e 's/install\$//' | tr -d ' \\t' | tr '\\n' ' '` 2>&1", $subdir, 1 );
         my $env_vars = "DB_HOST=localhost DB_NAME=" . $config->param('database') . " DB_USER=" . $config->param('user') . " DB_PASS=" . $config->param('password') . " ZEBRA_MARC_FORMAT=$lflavour PERL_MM_USE_DEFAULT=1";
         ssh_task( $ssh, "Running perl Makefile.PL for $flavour",
             "$env_vars perl Makefile.PL 2>&1", $subdir, 1 );
@@ -904,6 +904,13 @@ _SUMMARY_
     $summary .= $capsule_summary;
 
     print $summary unless $config->param('quiet') > 1;
+
+    $log .= "\n$summary";
+
+    open my $logfile, '>', build_result('release-tool.log');
+    print $logfile $log;
+    close($logfile);
+
 
     if ( $config->param('alert') ) {
         $summary =~ s/\x1b\[[0-9]*m//g;
