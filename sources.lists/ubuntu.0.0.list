@@ -1,0 +1,25 @@
+
+deb http://us.archive.ubuntu.com/ubuntu/ quantal main restricted
+deb-src http://us.archive.ubuntu.com/ubuntu/ quantal main restricted
+deb http://us.archive.ubuntu.com/ubuntu/ quantal-updates main restricted
+deb-src http://us.archive.ubuntu.com/ubuntu/ quantal-updates main restricted
+
+deb http://us.archive.ubuntu.com/ubuntu/ quantal universe
+deb-src http://us.archive.ubuntu.com/ubuntu/ quantal universe
+deb http://us.archive.ubuntu.com/ubuntu/ quantal-updates universe
+deb-src http://us.archive.ubuntu.com/ubuntu/ quantal-updates universe
+
+deb http://us.archive.ubuntu.com/ubuntu/ quantal multiverse
+deb-src http://us.archive.ubuntu.com/ubuntu/ quantal multiverse
+deb http://us.archive.ubuntu.com/ubuntu/ quantal-updates multiverse
+deb-src http://us.archive.ubuntu.com/ubuntu/ quantal-updates multiverse
+
+deb http://security.ubuntu.com/ubuntu quantal-security main restricted
+deb-src http://security.ubuntu.com/ubuntu quantal-security main restricted
+deb http://security.ubuntu.com/ubuntu quantal-security universe
+deb-src http://security.ubuntu.com/ubuntu quantal-security universe
+deb http://security.ubuntu.com/ubuntu quantal-security multiverse
+deb-src http://security.ubuntu.com/ubuntu quantal-security multiverse
+
+deb http://debian.koha-community.org/koha squeeze-dev main
+
