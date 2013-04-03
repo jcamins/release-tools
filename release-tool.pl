@@ -866,7 +866,8 @@ sub summary {
     my $rnotes     = $config->param('rnotes');
     my $stats      = $config->param('stats');
     my $emailfile  = $config->param('email-file');
-    my $summary = <<_SUMMARY_;
+    my $logfile    = build_result('release-tool.log');
+    my $summary    = <<_SUMMARY_;
 $capsule_summary
 
 Release test report
@@ -896,6 +897,7 @@ Release notes:          $rnotes
 Statistics:             $stats\[.txt/.html\]
 E-mail file:            $emailfile
 Summary config file:    $configfile
+Log file:               $logfile
 _SUMMARY_
 
     $summary .= colored( "Version mismatch between requested version " .
@@ -907,9 +909,9 @@ _SUMMARY_
 
     $log .= "\n$summary";
 
-    open my $logfile, '>', build_result('release-tool.log');
-    print $logfile $log;
-    close($logfile);
+    open my $logfh, '>', $logfile;
+    print $logfh $log;
+    close($logfh);
 
 
     if ( $config->param('alert') ) {
