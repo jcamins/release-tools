@@ -317,7 +317,7 @@ my @syspref_queries = <SYSPREFS>;
 close SYSPREFS;
 
 my @sysprefs;
-foreach my $queryline (@syspref_queries) {
+foreach my $queryline (sort { lc($a) cmp lc($b) } @syspref_queries) {
     $queryline =~ m/\(([^)]*)\)\s*VALUES\s*\(([^)]*)\)/;
     my @columns = split(/,/, $1);
     my @values = split(/,/, $2);
