@@ -1,0 +1,23 @@
+  Release Manager:       Galen Charlton <gmc@esilibrary.com
+  Documentation Manager: Nicole C Engard <nengard@gmail.com>
+  Installation Documentation Managers:
+                         Samuel Desseaux <samuel.desseaux@ecp.fr>
+                         Mason James <mtj@kohaaloha.com>
+  Translation Manager:   Ruth Bavousett <druthb@bywatersolutions.com>
+  QA Manager:            Katrin Fischer <Katrin.Fischer@bsz-bw.de>
+  QA Team:               Chris Cormack <chrisc@catalyst.net.nz>
+                         Marcel de Rooy <M.de.Rooy@rijksmuseum.nl>,
+                         Jonathan Druart <jonathan.druart@biblibre.com>,
+                         Brendan Gallagher <brendan@bywatersolutions.com>
+                         Kyle Hall <kyle@bywatersolutions.com>
+                         Mason James <mtj@kohaaloha.com>
+                         Paul Poulain <paul.poulain@biblibre.com>
+  Bug Wranglers:         Magnus Enger <magnus@enger.priv.no>
+  Packaging Manager:     Robin Sheat <robin@catalyst.net.nz>
+  Live CD Manager:       Nguyen Quoc Uy <nguyenquocuy_1102@yahoo.com>
+  VM Manager:            Samuel Desseaux <samuel.desseaux@ecp.fr>
+
+  Release Maintainer (3.8.x): Chris Hall <chrish@catalyst.net.nz>
+  Release Maintainer (3.10.x): Bernardo Gonzalez Kriegel <bgkriegel@gmail.com>
+  Release Maintainer (3.12.x): Tomás Cohen Arazi <tomascohen@gmail.com>
+
