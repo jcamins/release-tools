@@ -100,6 +100,8 @@ my $additional = $5;
 $minor =~ s/^0*(\d+)$/$1/;
 $release =~ s/^0*(\d+)$/$1/;
 my $shortversion = "$major.$minor.$release";
+my $minorversion = "$major.$minor";
+$arguments{minorversion}     = $minorversion;
 $arguments{shortversion}     = $shortversion;
 $arguments{shortversion}    .= "$additional" if ($additional);
 $arguments{expandedversion}  = "$major.$expanded_minor.$expanded_release";
@@ -137,12 +139,8 @@ $pootle = "http://translate.koha-community.org/" unless defined(get($pootle));
 my $translationpage = get($pootle);
 my @translations = ( {language => 'English (USA)'} );
 
-while ($translationpage =~ m#<td class="stats-name">\W*<a[^>]*>([^<]*)</a>\W*</td>\W*<td class="stats-graph">\W*<div class="sortkey">([0-9]*)<#g) {
+while ($translationpage =~ m#<td class="stats-name">\W*<a[^>]*><span>([^<]*)</span></a>\W*</td>\W*<td class="stats-graph">\W*<div class="sortkey">([0-9]*)<#g) {
     push @translations, {language => "$1 ($2%)"} if ($2 > 50);
-}
-
-while ($translationpage =~ m#<td class="language">\W*<a[^>]*>([^<]*)</a>\W*</td>\W*<td>\W*<div class="sortkey">([0-9]*)<#g) {
-    push @translations, {language => "$1 ($2%)" } if ($2 > 50);
 }
 
 $arguments{translations} = \@translations;

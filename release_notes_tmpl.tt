@@ -98,7 +98,7 @@ documentation is
 As of the date of these release notes, only the English version of the
 Koha manual is available:
 
-    http://manual.koha-community.org/[% shortversion %]/en/
+    http://manual.koha-community.org/[% minorversion %]/en/
 
 The Git repository for the Koha manual can be found at
 
