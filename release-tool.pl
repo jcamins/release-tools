@@ -667,7 +667,7 @@ unless ( $config->param('skip-deb') || $config->param('skip-install') ) {
         print_log("Installing from package for $flavour...");
         my ($lxc_ip, $ssh) = create_lxc();
         ssh_task( $ssh, "Downloading package...", "wget -nv http://10.0.3.1" . $config->param('package') . ' 2>&1', '', 1 );
-        ssh_task( $ssh, "Installing package...", "sudo dpkg --no-debsig -i " . basename($config->param('package')) . ' 2>&1; sudo apt-get -y -f --force-yes install 2>&1', '', 1 );
+        ssh_task( $ssh, "Installing package...", "sudo dpkg --no-debsig -i " . basename($config->param('package')) . ' 2>&1; sudo apt-get update; sudo apt-get -y -f --force-yes install 2>&1', '', 1 );
         ssh_task( $ssh, "Running koha-create for $flavour",
             "sudo koha-create --marcflavor=$lflavour --create-db pkgrel 2>&1", '',
             1 );

@@ -168,7 +168,7 @@ $arguments{lastrelease} = $4;
 $arguments{downloadlink} = "http://download.koha-community.org/koha-$arguments{expandedversion}.tar.gz";
 
 foreach (@git_log) {
-    if ($_ =~ m/([B|b]ug|BZ)?\s?(?<![a-z]|\.)(\d{4})[\s|:|,]/g) {
+    if ($_ =~ m/([B|b]ug|BZ)?\s?(?<![a-z]|\.)(\d{3,5})[\s|:|,]/g) {
 #        print "$&\n"; # Uncomment this line and the die below to view exact matches
         push @bug_list, $2;
     }
@@ -325,6 +325,7 @@ foreach my $queryline (sort { lc($a) cmp lc($b) } @syspref_queries) {
     $variable =~ s/['"`]//g;
     push @sysprefs, { name => $variable };
 }
+@sysprefs = sort { lc($a->{'name'}) cmp lc($b->{'name'}) } @sysprefs;
 $arguments{sysprefs} = \@sysprefs;
 
 # Now we'll alphabetize the contributors based on surname (or at least the last word on their line)
